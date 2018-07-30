@@ -1,5 +1,6 @@
 package bot.workflow.wf;
 
+import java.awt.Color;
 import java.util.Date;
 import java.util.List;
 import java.util.Timer;
@@ -10,6 +11,7 @@ import bot.workflow.core.Ref;
 
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
+import net.dv8tion.jda.core.entities.MessageEmbed;
 
 
 
@@ -19,7 +21,38 @@ public class Task extends TimerTask {
 	private String description;
 	private Date deadline;
 	private Long projectId;
+	private int completion;
+	private boolean isCompleted;
 	
+	public Task(List<TeamMember> assignedMembers, String name, String description, Date deadline, Long projectId,
+			int completion, boolean isCompleted) {
+		super();
+		this.assignedMembers = assignedMembers;
+		this.name = name;
+		this.description = description;
+		this.deadline = deadline;
+		this.projectId = projectId;
+		this.completion = completion;
+		this.isCompleted = isCompleted;
+	}
+
+
+	public int getCompletion() {
+		return completion;
+	}
+
+	public void setCompletion(int completion) {
+		this.completion = completion;
+	}
+
+	public boolean isCompleted() {
+		return isCompleted;
+	}
+
+	public void setCompleted(boolean isCompleted) {
+		this.isCompleted = isCompleted;
+	}
+
 	public Task(List<TeamMember> assignedMembers, String name, String description, Date deadline, Long projectId) {
 		super();
 		this.assignedMembers = assignedMembers;
@@ -27,13 +60,16 @@ public class Task extends TimerTask {
 		this.description = description;
 		this.deadline = deadline;
 		this.projectId = projectId;
-		
-		Timer t = new Timer();
-		t.schedule(this, (deadline.getTime() - new Date().getTime()));
 	}
 	
 	@Override
 	public void run() {
+		MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
+		objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
+		
+	}
+	
+	public MessageEmbed getEmbed(Color c) {
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle(name);
 		eb.setDescription(description);
@@ -43,11 +79,9 @@ public class Task extends TimerTask {
 		}
 				
 		eb.addField("Members Assigned to this task:", collaborators,false);
-		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), "");
-		eb.setColor(Ref.RED);
-		MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-		objMsgCh.sendMessage(eb.build()).queue();
-		
+		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), Ref.logoURL);
+		eb.setColor(c);
+		return eb.build();
 	}
 	
 	public void setTimer() {
@@ -63,16 +97,50 @@ public class Task extends TimerTask {
 		this.assignedMembers = assignedMembers;
 	}
 	
-	public void addMembers(List<TeamMember> assignedMembers) {
-		this.assignedMembers.addAll(assignedMembers);
+	public void addMember(TeamMember tm) {
+		if(!hasMember(tm)) {
+			assignedMembers.add(tm);
+		}
 	}
 	
-	public void addMember(TeamMember tm) {
-		assignedMembers.add(tm);
+	public void addMembers(List<TeamMember> members) {
+		for(TeamMember tm : members) {
+			addMember(tm);
+		}
+	}
+	
+	public void removeMember(TeamMember tm) {
+		if(hasMember(tm)) {
+			for(int i = assignedMembers.size() - 1; i >= 0; i--) {
+				if(assignedMembers.get(i).getUser().getIdLong() == tm.getUser().getIdLong()) {
+					assignedMembers.remove(i);
+				}
+			}
+		}
+	}
+	
+	public void removeMembers(List<TeamMember> members) {
+		for(TeamMember tm : members) {
+			removeMember(tm);
+			
+		}
+	}
+	
+	public boolean hasMember(TeamMember tm) {
+		for(TeamMember teamMember : assignedMembers) {
+			if(teamMember.getUser().getIdLong() == (tm.getUser().getIdLong())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public Date getDeadline() {
 		return deadline;
+	}
+	
+	public String getDeadlineString() {
+		return Ref.dateFormat.format(deadline);
 	}
 
 	public void setDeadline(Date deadline) {

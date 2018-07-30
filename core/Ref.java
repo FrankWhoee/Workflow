@@ -12,7 +12,9 @@ public class Ref {
 	public static final String version = "1.0.0";
 	public static final File workflowDB = new File("../WorkflowDB/workflow.json");
 	public static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+	public static final DateFormat dateFormatTrimmed = new SimpleDateFormat("yyyy/MM/dd");
 	
+	public static final String logoURL = "https://raw.githubusercontent.com/FrankWhoee/Workflow/master/wfLogo.png";
 	
 	//Colours
 	public static final Color RED = new Color(255, 25, 25);

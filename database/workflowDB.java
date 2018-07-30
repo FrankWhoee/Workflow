@@ -1,5 +1,8 @@
 package bot.workflow.database;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.google.gson.*;
 
 import bot.workflow.core.Ref;
@@ -9,12 +12,23 @@ import bot.workflow.wf.*;
 public class workflowDB {
 	
 	public static JsonObject database;
+	private static List<Project> projects = new ArrayList<Project>();
 	
 	
 	public static void parseDB() {
 		try {
 			String raw = StringUtil.readFileAsString(Ref.workflowDB.getPath());
 			database = new JsonParser().parse(raw).getAsJsonObject();
+			for(String key : database.keySet()) {
+				Project p = Project.fromJson(database.get(key).toString());
+				try{
+					p.activate();
+				}catch(IllegalStateException ise) {
+					
+				}
+				projects.add(p);
+			}
+			System.out.println("Database parsed succesfully.");
 		}catch(Exception e) {
 			System.err.println("Error reading JSON database.");
 			if(Ref.workflowDB.exists()) {
@@ -22,17 +36,72 @@ public class workflowDB {
 			}else {
 				System.err.println("JSON does not exist.");
 				database = new JsonObject();
-				save();
+				rawSave();
 				System.err.println("New JSON file created.");
 			}
 		}		
 	}
 	
+	public static void addProject(Project p) {
+		projects.add(p);
+	}
+	
+	public static void removeProject(Project p) {
+		projects.remove(p);
+	}
+	
+	public static void removeProject(Long projectId) {
+		for(int i = 0; i < projects.size(); i++) {
+			Project p = projects.get(i);
+			System.out.println("checking " + p.getProjectId() + " compared to " + projectId);
+			System.out.println(p.getProjectId() == projectId);
+			if(p.getProjectId().equals(projectId)) {
+				System.out.println("removed " + p.getName());
+				projects.remove(i);
+				return;
+			}
+		}
+	}
+	
+	public static boolean hasProject(Project p) {
+		return projects.contains(p);
+	}
+	
+	public static boolean hasProject(Long projectId) {
+		for(Project p : projects) {
+			if(p.getProjectId().equals(projectId)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public static Project getProject(Long projectId) {
+		for(Project p : projects) {
+			if(p.getProjectId().equals(projectId)) {
+				return p;
+			}
+		}
+		return null;
+	}
+	
+	/*public static Project getProject(Long projectId) {
 		return Project.fromJson(database.get(Long.toString(projectId)).toString());
+	}*/
+	
+	public static void rawSave() {
+		StringUtil.writeToFile(database.toString(), Ref.workflowDB.getPath());
 	}
 	
 	public static void save() {
+		for(Project p : projects) {
+			database.add(Long.toString(p.getProjectId()), p.toJson());
+		}
+		for(String key : database.keySet()) {
+			if(!hasProject(Long.parseLong(key))) {
+				database.remove(key);
+			}
+		}
 		StringUtil.writeToFile(database.toString(), Ref.workflowDB.getPath());
 	}
 	

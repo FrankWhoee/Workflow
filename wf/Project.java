@@ -22,8 +22,8 @@ import net.dv8tion.jda.core.entities.MessageEmbed.Field;
 
 public class Project extends TimerTask{
 	
-	private List<TeamMember> team;
-	private List<Task> tasks;
+	private List<TeamMember> team = new ArrayList<TeamMember>();
+	private List<Task> tasks = new ArrayList<Task>();
 	private String name;
 	private String description;
 	private Date deadline;
@@ -67,14 +67,64 @@ public class Project extends TimerTask{
 		this.deadline = deadline;
 		this.projectId = projectId;
 	}
+	
+	public void activate() {
+		setTimer();
+		for(Task t : tasks) {
+			t.setTimer();
+		}
+	}
 
 	public void setTimer() {
 		Timer t = new Timer();
 		t.schedule(this, (deadline.getTime() - new Date().getTime()));
 	}
 	
+	public void addMember(TeamMember tm) {
+		if(!hasMember(tm)) {
+			team.add(tm);
+		}
+	}
+	
 	public void addMembers(List<TeamMember> members) {
-		team.addAll(members);
+		for(TeamMember tm : members) {
+			addMember(tm);
+		}
+	}
+	
+	public void removeMember(TeamMember tm) {
+		if(hasMember(tm)) {
+			for(int i = team.size() - 1; i >= 0; i--) {
+				if(team.get(i).getUser().getIdLong() == tm.getUser().getIdLong()) {
+					team.remove(i);
+				}
+			}
+		}
+	}
+	
+	public void removeMembers(List<TeamMember> members) {
+		for(TeamMember tm : members) {
+			removeMember(tm);
+			
+		}
+	}
+	
+	public boolean hasMember(TeamMember tm) {
+		for(TeamMember teamMember : team) {
+			if(teamMember.getUser().getIdLong() == (tm.getUser().getIdLong())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean hasMember(Long discordId) {
+		for(TeamMember teamMember : team) {
+			if(teamMember.getUser().getIdLong() == discordId) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public void setTeam(List<TeamMember> team) {
@@ -109,9 +159,7 @@ public class Project extends TimerTask{
 		this.projectId = projectId;
 	}
 
-	public void addMember(TeamMember tm) {
-		team.add(tm);
-	}
+
 	
 	public static Project fromJson(String json) {
 		JsonObject project = new JsonParser().parse(json).getAsJsonObject();
@@ -144,27 +192,39 @@ public class Project extends TimerTask{
 		}
 		eb.addField("Project Channel:", App.jda.getTextChannelById(projectId).getAsMention(), false);
 		eb.addField("Members Assigned to this task:", collaborators,false);
-		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), "https://i.ytimg.com/vi/hGENaf830Ag/maxresdefault.jpg");
+		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), Ref.logoURL);
 		eb.setColor(c);
 		return eb.build();
 	}
 	
-	public MessageEmbed getEmbedTasks() {
+	public Task getTask(String name) {
+		for(Task t : tasks) {
+			if(t.getName().equals(name)) {
+				return t;
+			}
+		}
+		return null;
+	}	
+	
+	public MessageEmbed getTasksEmbed() {
 		String tasks = "";
 		for(Task t : this.tasks) {
 			String names = "";
 			for(TeamMember tm : t.getAssignedMembers()) {
-				if(t.getAssignedMembers().indexOf(tm) != t.getAssignedMembers().size()) {
+				if(t.getAssignedMembers().indexOf(tm) != t.getAssignedMembers().size() - 1) {
 					names += tm.getUser().getName() + ", ";
 				}else {
 					names += tm.getUser().getName();
 				}
 			}
-			tasks += "`" + t.getName() + " assigned to " + names + ". Deadline: " + Ref.dateFormat.format(deadline) + "`\n";
+			//+ "' assigned to " + names
+			tasks += "`'" + t.getName()  + "' Deadline: " + Ref.dateFormatTrimmed.format(deadline) + "`\n";
 		}
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle("Tasks");
 		eb.addField("", tasks, true);
+		eb.setColor(Ref.BLUE);
+		eb.setThumbnail(Ref.logoURL);
 		return eb.build();
 	}
 	

@@ -8,6 +8,7 @@ import java.util.List;
 import javax.security.auth.login.LoginException;
 
 import bot.workflow.database.workflowDB;
+import bot.workflow.util.MessageHarvester;
 import bot.workflow.wf.Project;
 import bot.workflow.wf.Task;
 import bot.workflow.wf.TeamMember;
@@ -58,7 +59,7 @@ public class App extends ListenerAdapter
     	String input = "";
     	try{
     		command = raw.substring(Ref.prefix.length(), raw.indexOf(" ")).trim();
-    		input = raw.substring(command.length() + 1).trim();
+    		input = raw.substring(command.length() + Ref.prefix.length() +1).trim();
     	}catch (Exception e) {
     		try {
     			command = raw.substring(Ref.prefix.length()).trim();
@@ -68,80 +69,31 @@ public class App extends ListenerAdapter
     		//System.out.print(command);
     		
     	}
+    	MessageHarvester mh = MessageHarvester.harvest(objMsg,true);
     	
     	if(command.equals("createProject")) {
-    		//Takes whatever is in between ""
-    		String name; 
-    		try {
-    			name = input.substring(input.indexOf("\"") + 1, input.lastIndexOf("\""));
-    		}catch(Exception e) {
-    			name = objMsgCh.getName();
-    		}
+    		MessageHarvester createMH = MessageHarvester.harvest(objMsg);
     		
-    		//Takes whatever is in between ()
-    		String description;
-    		try {
-    			description = input.substring(input.indexOf("(") + 1, input.indexOf(")"));
-    		}catch(Exception e) {
-    			description = "";
-    		}
-    		
-    		//Takes whatever is in between <>
-    		String deadlineString = input.substring(input.indexOf("<") + 1, input.indexOf(">"));
-    		Date deadline;
-    		try {
-				 deadline = Ref.dateFormat.parse(deadlineString);
-			} catch (ParseException e) {
-				objMsgCh.sendMessage("Improperly formatted deadline.").queue();
-				return;
-			}
-    		Long projectId = objMsgCh.getIdLong();
-    		if(objMsg.getMentionedChannels().size() > 0) {
-    			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-    		}
-    		
-    		
-    		if(workflowDB.database.has("" + projectId)) {
-    			objMsgCh.sendMessage("This channel already has a project.").queue();
-    			return;
-    		}
-    		
-    		List<Member> taggedMembers = objMsg.getMentionedMembers();
-    		List<TeamMember> team = new ArrayList<TeamMember>();
-    		for(Member m : taggedMembers) {
-    			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-    			team.add(tm);
-    		}
-    		
-    		
-    		
-    		Project p = new Project(team, name, description, deadline, projectId);
-    		workflowDB.database.add(Long.toString(projectId),p.toJson());
+    		Project p = new Project(createMH.team, createMH.name, createMH.description, createMH.deadline, createMH.projectId);
+    		workflowDB.addProject(p);
     		p.setTimer();
     		workflowDB.save();
     		objMsgCh.sendMessage(p.getEmbed(Ref.GREEN)).queue();
-    	}else if(command.equalsIgnoreCase("delete")) {
-    		
-    		Long projectId = objMsgCh.getIdLong();
-    		if(objMsg.getMentionedChannels().size() > 0) {
-    			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-    		}
-    		
+    	}else if(command.equalsIgnoreCase("delete")) {	
     		EmbedBuilder eb = new EmbedBuilder();
-    		if(workflowDB.database.has("" + projectId)) {
-    			workflowDB.database.remove("" + projectId);
-        		eb.setTitle("Project deleted.");
+    		if(workflowDB.database.has("" + mh.projectId)) {
+    			workflowDB.removeProject(mh.projectId);
+        		eb.setTitle("Project "+mh.projectId+" deleted.");
         		eb.setColor(Ref.RED);
         		objMsgCh.sendMessage(eb.build()).queue();
         		workflowDB.save();
     		}else {
-    			eb.setTitle("Error: This channel does not have a project.");
+    			eb.setColor(Ref.RED);
+    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
+    			objMsgCh.sendMessage(eb.build()).queue();
         		eb.setColor(Ref.RED);
         		objMsgCh.sendMessage(eb.build()).queue();
     		}
-    		
-    		
-    		
     		
     	}else if(command.equalsIgnoreCase("status")) {
     		EmbedBuilder eb = new EmbedBuilder();
@@ -154,61 +106,72 @@ public class App extends ListenerAdapter
     		objMsgCh.sendMessage(Ref.helpMessage).queue();
     		
     	}else if(command.equalsIgnoreCase("addTask")) {
-    		//Takes whatever is in between ""
-    		String name; 
-    		try {
-    			name = input.substring(input.indexOf("\"") + 1, input.lastIndexOf("\""));
-    		}catch(Exception e) {
-    			name = objMsgCh.getName();
-    		}
     		
-    		//Takes whatever is in between ()
-    		String description;
-    		try {
-    			description = input.substring(input.indexOf("(") + 1, input.indexOf(")"));
-    		}catch(Exception e) {
-    			description = "";
-    		}
-    		
-    		//Takes whatever is in between <>
-    		String deadlineString = input.substring(input.indexOf("<") + 1, input.indexOf(">"));
-    		Date deadline;
-    		try {
-				 deadline = Ref.dateFormat.parse(deadlineString);
-			} catch (ParseException e) {
-				objMsgCh.sendMessage("Improperly formatted deadline.").queue();
-				return;
-			}
-    		Long projectId = objMsgCh.getIdLong();
-    		if(objMsg.getMentionedChannels().size() > 0) {
-    			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-    		}
-    		
-    		
-    		if(workflowDB.database.has("" + projectId)) {
-    			//objMsgCh.sendMessage("This channel already has a project.").queue();
-    			//return;
-    		}
-    		
-    		List<Member> taggedMembers = objMsg.getMentionedMembers();
-    		List<TeamMember> team = new ArrayList<TeamMember>();
-    		for(Member m : taggedMembers) {
-    			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-    			team.add(tm);
-    		}
-    		
-    		
-    		
-    		Task t = new Task(team, name, description, deadline, projectId);
-    		Project p = Project.fromJson(workflowDB.database.get("" + projectId).toString());
-    		System.out.println(t.getName());
-    		if(p.getTasks() == null) {
-    			p.setTasks(new ArrayList<Task>());
-    		}
+    		Task t = new Task(mh.team, mh.name, mh.description, mh.deadline, mh.projectId);
+    		t.setTimer();
+    		Project p = workflowDB.getProject(mh.projectId);
     		p.addTask(t);
-    		workflowDB.database.add(Long.toString(projectId),p.toJson());
     		workflowDB.save();
-    		objMsgCh.sendMessage(p.getEmbed(Ref.GREEN)).queue();
+    		
+    		objMsgCh.sendMessage(t.getEmbed(Ref.GREEN)).queue();
+    	}else if(command.equals("getProject")) {
+    		
+    		
+    		if(!workflowDB.hasProject(mh.projectId)) {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			eb.setColor(Ref.RED);
+    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+    			return;
+    		}
+    		
+    		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getEmbed(Ref.BLUE)).queue();
+    	}else if(command.equals("getTask")) {
+    		
+    		
+    		if(!workflowDB.hasProject(mh.projectId)) {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			eb.setColor(Ref.RED);
+    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+    			return;
+    		}
+    		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTask(input.trim()).getEmbed(Ref.BLUE)).queue();
+    	}else if(command.equals("getTasks")) {
+    		
+    		
+    		if(!workflowDB.hasProject(mh.projectId)) {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			eb.setColor(Ref.RED);
+    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+    			return;
+    		}
+    		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTasksEmbed()).queue();
+    	}else if(command.equals("addMembers") || command.equals("addMember")) {
+    		Project p = workflowDB.getProject(mh.projectId);
+    		if(mh.name.equals("")){
+    			p.addMembers(mh.team);
+    			objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    		}else {
+    			Task t = p.getTask(mh.name);
+    			t.addMembers(mh.team);
+    			objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		}
+    		workflowDB.save();
+    	}else if(command.equals("removeMembers") || command.equals("removeMember")) {
+    		Project p = workflowDB.getProject(mh.projectId);
+    		if(mh.name.equals("")){
+    			p.removeMembers(mh.team);
+    			objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    		}else {
+    			Task t = p.getTask(mh.name);
+    			t.removeMembers(mh.team);
+    			objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		}
+    		workflowDB.save();
+    	}else if(command.equals("editProject")) {
+
     	}
     	
     	
@@ -217,4 +180,6 @@ public class App extends ListenerAdapter
     	
     	
     }
+    
+
 }
