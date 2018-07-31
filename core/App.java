@@ -73,18 +73,20 @@ public class App extends ListenerAdapter
     	
     	if(command.equalsIgnoreCase("help")) {
     		objMsgCh.sendMessage(Ref.generalHelpMessage).queue();
-    		
+    		return;
     	}else if(command.equalsIgnoreCase("helpProject")) {
     		objMsgCh.sendMessage(Ref.helpProjectMessage).queue();
-    		
+    		return;
     	}else if(command.equalsIgnoreCase("helpTask")) {
     		objMsgCh.sendMessage(Ref.helpTaskMessage).queue();
-    		
+    		return;
     	}else if(command.equalsIgnoreCase("helpPT")) {
     		objMsgCh.sendMessage(Ref.helpPTMessage).queue();
+    		return;
     		
     	}else if(command.equalsIgnoreCase("helpMisc")) {
     		objMsgCh.sendMessage(Ref.helpMiscMessage).queue();
+    		return;
     		
     	}else if(command.equalsIgnoreCase("status")) {
     		EmbedBuilder eb = new EmbedBuilder();
@@ -92,6 +94,7 @@ public class App extends ListenerAdapter
     		eb.addField("Status","Online",false);
     		eb.setColor(Ref.BLUE);
     		objMsgCh.sendMessage(eb.build()).queue();
+    		return;
     		
     	}else if(command.equals("createProject")) {
     		MessageHarvester createMH = MessageHarvester.harvest(objMsg);
@@ -101,22 +104,27 @@ public class App extends ListenerAdapter
     		p.setTimer();
     		workflowDB.save();
     		objMsgCh.sendMessage(p.getEmbed(Ref.GREEN)).queue();
-    	}else if(command.equalsIgnoreCase("delete")) {	
+    		return;
+    	}
+    	
+    	if(!workflowDB.database.has("" + mh.projectId)) {
     		EmbedBuilder eb = new EmbedBuilder();
-    		if(workflowDB.database.has("" + mh.projectId)) {
-    			workflowDB.removeProject(mh.projectId);
-        		eb.setTitle("Project "+mh.projectId+" deleted.");
-        		eb.setColor(Ref.RED);
-        		objMsgCh.sendMessage(eb.build()).queue();
-        		workflowDB.save();
-    		}else {
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-        		eb.setColor(Ref.RED);
-        		objMsgCh.sendMessage(eb.build()).queue();
-    		}
-    		
+    		eb.setColor(Ref.RED);
+			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
+			objMsgCh.sendMessage(eb.build()).queue();
+    		eb.setColor(Ref.RED);
+    		return;
+		}
+    	
+    	//Now guaranteed that this channel or tagged channel is associated with a project.
+    	
+    	if(command.equalsIgnoreCase("delete")) {	
+    		EmbedBuilder eb = new EmbedBuilder();
+			workflowDB.removeProject(mh.projectId);
+    		eb.setTitle("Project "+mh.projectId+" deleted.");
+    		eb.setColor(Ref.RED);
+    		objMsgCh.sendMessage(eb.build()).queue();
+    		workflowDB.save();
     	}else if(command.equalsIgnoreCase("addTask")) {
     		
     		Task t = new Task(mh.team, mh.name, mh.description, mh.deadline, mh.projectId);
@@ -126,39 +134,11 @@ public class App extends ListenerAdapter
     		workflowDB.save();
     		
     		objMsgCh.sendMessage(t.getEmbed(Ref.GREEN)).queue();
-    	}else if(command.equals("getProject")) {
-    		
-    		
-    		if(!workflowDB.hasProject(mh.projectId)) {
-    			EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-    			return;
-    		}
-    		
+    	}else if(command.equals("getProject")) {   		
     		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getEmbed(Ref.BLUE)).queue();
     	}else if(command.equals("getTask")) {
-    		
-    		
-    		if(!workflowDB.hasProject(mh.projectId)) {
-    			EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-    			return;
-    		}
     		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTask(mh.name).getEmbed(Ref.BLUE)).queue();
     	}else if(command.equals("getTasks")) {
-    		
-    		
-    		if(!workflowDB.hasProject(mh.projectId)) {
-    			EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: #" + App.jda.getTextChannelById(mh.projectId).getName() + " is not associated with a project.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-    			return;
-    		}
     		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTasksEmbed()).queue();
     	}else if(command.equals("addMembers") || command.equals("addMember")) {
     		Project p = workflowDB.getProject(mh.projectId);
@@ -272,6 +252,9 @@ public class App extends ListenerAdapter
 			}
 			
     		workflowDB.save();
+    	}else if(command.equals("setLogo")) {
+    		Project p = workflowDB.getProject(mh.projectId);
+    		p.setLogoURL(mh.name);
     	}
     	
     	

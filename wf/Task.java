@@ -64,9 +64,11 @@ public class Task extends TimerTask {
 	
 	@Override
 	public void run() {
-		MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-		objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
-		
+		//Verify that deadline has not changed
+		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
+			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
+			objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
+		}
 	}
 	
 	public MessageEmbed getEmbed(Color c) {
@@ -156,6 +158,7 @@ public class Task extends TimerTask {
 
 	public void setDeadline(Date deadline) {
 		this.deadline = deadline;
+		setTimer();
 	}
 
 	public Long getProjectId() {

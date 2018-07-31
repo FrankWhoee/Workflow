@@ -58,10 +58,7 @@ public class workflowDB {
 	public static void removeProject(Long projectId) {
 		for(int i = 0; i < projects.size(); i++) {
 			Project p = projects.get(i);
-			System.out.println("checking " + p.getProjectId() + " compared to " + projectId);
-			System.out.println(p.getProjectId() == projectId);
 			if(p.getProjectId().equals(projectId)) {
-				System.out.println("removed " + p.getName());
 				projects.remove(i);
 				return;
 			}

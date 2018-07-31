@@ -31,7 +31,105 @@ public class Project extends TimerTask{
 	private int completion;
 	private boolean isCompleted;
 	
+	//Cosmetic
+	private String logoURL = Ref.logoURL;
+	private Color WARNING = Ref.RED;
+	private Color BEGINNING = Ref.GREEN;
+	private Color DEFAULT = Ref.BLUE;
 	
+	public static Project fromJson(String json) {
+		JsonObject project = new JsonParser().parse(json).getAsJsonObject();
+		Gson gson = new Gson();
+		
+		Type listTeamMemberType = new TypeToken<List<TeamMember>>() {}.getType();
+		List<TeamMember> team = gson.fromJson(project.get("team"), listTeamMemberType);
+		
+		Type listTaskType = new TypeToken<List<Task>>() {}.getType();
+		List<Task> tasks = gson.fromJson(project.get("tasks"), listTaskType);
+		String name = project.get("name").getAsString();
+		String description = project.get("description").getAsString();
+		
+		Type dateType = new TypeToken<Date>() {}.getType();
+		Date deadline = gson.fromJson(project.get("deadline"), dateType);
+		Long projectId = project.get("projectId").getAsLong();
+		
+		int completion = project.get("completion").getAsInt();
+		boolean isCompleted = project.get("isCompleted").getAsBoolean();
+		
+		String logoURL = project.get("logoURL").getAsString();
+		
+		Type colorType = new TypeToken<Color>() {}.getType();
+		Color WARNING = gson.fromJson(project.get("WARNING"), colorType);
+		Color BEGINNING = gson.fromJson(project.get("BEGINNING"), colorType);
+		Color DEFAULT = gson.fromJson(project.get("DEFAULT"), colorType);
+		
+	
+		
+		Project p = new Project(team, tasks, name, description, deadline, projectId, completion, isCompleted, logoURL, WARNING, BEGINNING, DEFAULT);
+	
+		return p;
+	}
+	
+	
+	public String getLogoURL() {
+		return logoURL;
+	}
+
+
+	public void setLogoURL(String logoURL) {
+		this.logoURL = logoURL;
+	}
+
+
+	public Color getWARNING() {
+		return WARNING;
+	}
+
+
+	public void setWARNING(Color wARNING) {
+		WARNING = wARNING;
+	}
+
+
+	public Color getBEGINNING() {
+		return BEGINNING;
+	}
+
+
+	public void setBEGINNING(Color bEGINNING) {
+		BEGINNING = bEGINNING;
+	}
+
+
+	public Color getDEFAULT() {
+		return DEFAULT;
+	}
+
+
+	public void setDEFAULT(Color dEFAULT) {
+		DEFAULT = dEFAULT;
+	}
+
+
+	public Project(List<TeamMember> team, List<Task> tasks, String name, String description, Date deadline,
+			Long projectId, int completion, boolean isCompleted, String logoURL, Color WARNING, Color BEGINNING,
+			Color DEFAULT) {
+		super();
+		this.team = team;
+		this.tasks = tasks;
+		this.name = name;
+		this.description = description;
+		this.deadline = deadline;
+		this.projectId = projectId;
+		this.completion = completion;
+		this.isCompleted = isCompleted;
+		this.logoURL = logoURL;
+		this.WARNING = WARNING;
+		this.BEGINNING = BEGINNING;
+		this.DEFAULT = DEFAULT;
+	}
+
+
 	public Project(List<TeamMember> team, List<Task> tasks, String name, String description, Date deadline,
 			Long projectId, int completion, boolean isCompleted) {
 		super();
@@ -193,6 +291,7 @@ public class Project extends TimerTask{
 
 	public void setDeadline(Date deadline) {
 		this.deadline = deadline;
+		setTimer();
 	}
 
 	public void setProjectId(Long projectId) {
@@ -205,29 +304,6 @@ public class Project extends TimerTask{
 		}
 	}
 
-
-	
-	public static Project fromJson(String json) {
-		JsonObject project = new JsonParser().parse(json).getAsJsonObject();
-		Gson gson = new Gson();
-		
-		Type listTeamMemberType = new TypeToken<List<TeamMember>>() {}.getType();
-		List<TeamMember> team = gson.fromJson(project.get("team"), listTeamMemberType);
-		
-		Type listTaskType = new TypeToken<List<Task>>() {}.getType();
-		List<Task> tasks = gson.fromJson(project.get("tasks"), listTaskType);
-		String name = project.get("name").getAsString();
-		String description = project.get("description").getAsString();
-		
-		Type dateType = new TypeToken<Date>() {}.getType();
-		Date deadline = gson.fromJson(project.get("deadline"), dateType);
-		Long projectId = project.get("projectId").getAsLong();
-		
-		Project p = new Project(team, tasks, name, description, deadline, projectId);
-	
-		return p;
-	}
-	
 	public MessageEmbed getEmbed(Color c) {
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle(name);
@@ -240,7 +316,7 @@ public class Project extends TimerTask{
 		eb.addField("Team:", collaborators,false);
 		String completion = isCompleted ? "Project is complete" : "Project is in progress";
 		eb.addField(completion,"Completion: " + this.completion + "%",false);
-		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), Ref.logoURL);
+		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), getLogoURL());
 		eb.setColor(c);
 		return eb.build();
 	}
@@ -272,7 +348,7 @@ public class Project extends TimerTask{
 		eb.setTitle("Tasks");
 		eb.addField("", tasks, true);
 		eb.setColor(Ref.BLUE);
-		eb.setThumbnail(Ref.logoURL);
+		eb.setThumbnail(getLogoURL());
 		return eb.build();
 	}
 	
@@ -326,9 +402,11 @@ public class Project extends TimerTask{
 
 	@Override
 	public void run() {
-		MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-		objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
-		
+		//Verify that deadline has not changed
+		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
+			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
+			objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
+		}
 	}
 	
 }
