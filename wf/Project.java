@@ -109,6 +109,10 @@ public class Project extends TimerTask{
 		}
 	}
 	
+	public void clearMembers() {
+		team.clear();
+	}
+	
 	public boolean hasMember(TeamMember tm) {
 		for(TeamMember teamMember : team) {
 			if(teamMember.getUser().getIdLong() == (tm.getUser().getIdLong())) {
@@ -157,6 +161,12 @@ public class Project extends TimerTask{
 
 	public void setProjectId(Long projectId) {
 		this.projectId = projectId;
+		for(Task t : tasks) {
+			t.setProjectId(projectId);
+		}
+		for(TeamMember tm : team) {
+			tm.setProjectId(projectId);
+		}
 	}
 
 

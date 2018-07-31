@@ -2,6 +2,8 @@ package bot.workflow.database;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.gson.*;
 
@@ -97,7 +99,11 @@ public class workflowDB {
 		for(Project p : projects) {
 			database.add(Long.toString(p.getProjectId()), p.toJson());
 		}
-		for(String key : database.keySet()) {
+		Set<String> keys = new TreeSet<String>();
+		for(String key : keys) {
+			keys.add(key);
+		}
+		for(String key : keys) {
 			if(!hasProject(Long.parseLong(key))) {
 				database.remove(key);
 			}

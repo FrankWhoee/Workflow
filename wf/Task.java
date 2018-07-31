@@ -109,6 +109,15 @@ public class Task extends TimerTask {
 		}
 	}
 	
+	public void clearMembers() {
+		assignedMembers.clear();
+	}
+	
+	public void setProjectId(Long projectId) {
+		this.projectId = projectId;
+	}
+
+
 	public void removeMember(TeamMember tm) {
 		if(hasMember(tm)) {
 			for(int i = assignedMembers.size() - 1; i >= 0; i--) {

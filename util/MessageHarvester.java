@@ -8,6 +8,8 @@ import java.util.List;
 import bot.workflow.core.App;
 import bot.workflow.core.Ref;
 import bot.workflow.database.workflowDB;
+import bot.workflow.wf.Project;
+import bot.workflow.wf.Task;
 import bot.workflow.wf.TeamMember;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Member;
@@ -48,7 +50,7 @@ public class MessageHarvester {
 		//Takes whatever is in between ()
 		String description = "";
 		try {
-			description = between(objMsg, "\"","\"");
+			description = between(objMsg, "(",")");
 		} catch (Exception e1) {
 			
 		}
@@ -101,7 +103,7 @@ public class MessageHarvester {
 		//Takes whatever is in between ()
 		String description = "";
 		try {
-			description = between(objMsg, "\"","\"");
+			description = between(objMsg, "(",")");
 		} catch (Exception e1) {
 			
 		}
@@ -142,6 +144,112 @@ public class MessageHarvester {
 		
 		List<Member> taggedMembers = objMsg.getMentionedMembers();
 		List<TeamMember> team = new ArrayList<TeamMember>();
+		for(Member m : taggedMembers) {
+			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+			team.add(tm);
+		}
+		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
+		return mh;
+	}
+	
+	public static MessageHarvester harvestProjectEdits(Message objMsg,Project p) {
+		
+		MessageChannel objMsgCh = objMsg.getChannel();
+		//Takes whatever is in between ""
+		String name;
+		try {
+			name = between(objMsg, "\"","\"");
+		} catch (Exception e1) {
+			name = p.getName();
+			
+		}
+		
+		//Takes whatever is in between ()
+		String description = p.getDescription();
+		try {
+			description = between(objMsg, "(",")");
+		} catch (Exception e1) {
+			
+		}
+		
+		//Takes whatever is in between <>
+		String deadlineString = Ref.dateFormat.format(p.getDeadline());
+		try {
+			deadlineString = between(objMsg,"<",">");
+		} catch (Exception e1) {
+		}
+		Date deadline = p.getDeadline();
+		try {
+			 deadline = Ref.dateFormat.parse(deadlineString);
+		} catch (ParseException e) {
+			deadline = p.getDeadline();
+		}
+		Long projectId = p.getProjectId();
+		if(objMsg.getMentionedChannels().size() > 0) {
+			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
+		}
+		
+		
+		List<Member> taggedMembers = objMsg.getMentionedMembers();
+		List<TeamMember> team = new ArrayList<TeamMember>();
+		if(taggedMembers.size() > 0) {
+			p.clearMembers();
+		}else if(taggedMembers.size() == 0)  {
+			team = p.getTeam();
+		}
+		for(Member m : taggedMembers) {
+			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+			team.add(tm);
+		}
+		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
+		return mh;
+	}
+	
+	public static MessageHarvester harvestTaskEdits(Message objMsg,Task t) {
+		
+		MessageChannel objMsgCh = objMsg.getChannel();
+		//Takes whatever is in between ""
+		String name;
+		try {
+			name = between(objMsg, "\"","\"");
+		} catch (Exception e1) {
+			name = t.getName();
+			
+		}
+		
+		//Takes whatever is in between ()
+		String description = t.getDescription();
+		try {
+			description = between(objMsg, "(",")");
+		} catch (Exception e1) {
+			
+		}
+		
+		//Takes whatever is in between <>
+		String deadlineString = Ref.dateFormat.format(t.getDeadline());
+		try {
+			deadlineString = between(objMsg,"<",">");
+		} catch (Exception e1) {
+		}
+		Date deadline = t.getDeadline();
+		try {
+			 deadline = Ref.dateFormat.parse(deadlineString);
+		} catch (ParseException e) {
+			deadline = t.getDeadline();
+		}
+		Long projectId = t.getProjectId();
+		if(objMsg.getMentionedChannels().size() > 0) {
+			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
+		}
+		
+		
+		List<Member> taggedMembers = objMsg.getMentionedMembers();
+		List<TeamMember> team = new ArrayList<TeamMember>();
+		if(taggedMembers.size() > 0) {
+			t.clearMembers();
+		}else if(taggedMembers.size() == 0)  {
+			team = t.getAssignedMembers();
+		}
 		for(Member m : taggedMembers) {
 			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
 			team.add(tm);

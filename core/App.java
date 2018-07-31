@@ -171,7 +171,38 @@ public class App extends ListenerAdapter
     		}
     		workflowDB.save();
     	}else if(command.equals("editProject")) {
-
+    		Project p = workflowDB.getProject(objMsgCh.getIdLong());
+    		MessageHarvester editmh = MessageHarvester.harvestProjectEdits(objMsg, p);
+    		
+    		p.setDeadline(editmh.deadline);
+    		p.setDescription(editmh.description);
+    		p.setName(editmh.name);
+    		p.setProjectId(editmh.projectId);
+    		p.setTeam(editmh.team);
+    		objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    		workflowDB.save();
+    	}else if(command.equals("editTask")) {
+    		Project p = workflowDB.getProject(mh.projectId);  
+    		Task t = p.getTask(mh.name);
+    		if(t== null) {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			eb.setColor(Ref.RED);
+    			eb.setTitle("Error: The task '" + mh.name + "' does not exist. Please check for spelling errors.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+    			return;
+    		}
+    		MessageHarvester editmh = MessageHarvester.harvestTaskEdits(objMsg, t);
+    		
+    		
+    		
+    		t.setDeadline(editmh.deadline);
+    		t.setDescription(editmh.description);
+    		t.setName(editmh.name);
+    		t.setAssignedMembers(editmh.team);
+    		objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		workflowDB.save();
+    	}else if(command.equals("complete")) {
+    		
     	}
     	
     	
@@ -183,3 +214,4 @@ public class App extends ListenerAdapter
     
 
 }
+
