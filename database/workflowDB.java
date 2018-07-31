@@ -25,21 +25,24 @@ public class workflowDB {
 				Project p = Project.fromJson(database.get(key).toString());
 				try{
 					p.activate();
-				}catch(IllegalStateException ise) {
+				}catch(Exception e) {
 					
 				}
 				projects.add(p);
 			}
 			System.out.println("Database parsed succesfully.");
+		}catch(JsonParseException jpe) {
+			System.err.println("Corrupted JSON detected. Printing stack trace...");
 		}catch(Exception e) {
 			System.err.println("Error reading JSON database.");
-			if(Ref.workflowDB.exists()) {
-				System.err.println("Corrupted JSON detected.");
-			}else {
+			if(!Ref.workflowDB.exists()) {
 				System.err.println("JSON does not exist.");
 				database = new JsonObject();
 				rawSave();
 				System.err.println("New JSON file created.");
+			}else {
+				System.err.println("Unknown error! Printing stack trace...");
+				e.printStackTrace();
 			}
 		}		
 	}

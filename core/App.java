@@ -71,7 +71,29 @@ public class App extends ListenerAdapter
     	}
     	MessageHarvester mh = MessageHarvester.harvest(objMsg,true);
     	
-    	if(command.equals("createProject")) {
+    	if(command.equalsIgnoreCase("help")) {
+    		objMsgCh.sendMessage(Ref.generalHelpMessage).queue();
+    		
+    	}else if(command.equalsIgnoreCase("helpProject")) {
+    		objMsgCh.sendMessage(Ref.helpProjectMessage).queue();
+    		
+    	}else if(command.equalsIgnoreCase("helpTask")) {
+    		objMsgCh.sendMessage(Ref.helpTaskMessage).queue();
+    		
+    	}else if(command.equalsIgnoreCase("helpPT")) {
+    		objMsgCh.sendMessage(Ref.helpPTMessage).queue();
+    		
+    	}else if(command.equalsIgnoreCase("helpMisc")) {
+    		objMsgCh.sendMessage(Ref.helpMiscMessage).queue();
+    		
+    	}else if(command.equalsIgnoreCase("status")) {
+    		EmbedBuilder eb = new EmbedBuilder();
+    		eb.setTitle("Workflow " + Ref.version);
+    		eb.addField("Status","Online",false);
+    		eb.setColor(Ref.BLUE);
+    		objMsgCh.sendMessage(eb.build()).queue();
+    		
+    	}else if(command.equals("createProject")) {
     		MessageHarvester createMH = MessageHarvester.harvest(objMsg);
     		
     		Project p = new Project(createMH.team, createMH.name, createMH.description, createMH.deadline, createMH.projectId);
@@ -94,16 +116,6 @@ public class App extends ListenerAdapter
         		eb.setColor(Ref.RED);
         		objMsgCh.sendMessage(eb.build()).queue();
     		}
-    		
-    	}else if(command.equalsIgnoreCase("status")) {
-    		EmbedBuilder eb = new EmbedBuilder();
-    		eb.setTitle("Workflow " + Ref.version);
-    		eb.addField("Status","Online",false);
-    		eb.setColor(Ref.BLUE);
-    		objMsgCh.sendMessage(eb.build()).queue();
-    		
-    	}else if(command.equalsIgnoreCase("help")) {
-    		objMsgCh.sendMessage(Ref.helpMessage).queue();
     		
     	}else if(command.equalsIgnoreCase("addTask")) {
     		
@@ -136,7 +148,7 @@ public class App extends ListenerAdapter
     			objMsgCh.sendMessage(eb.build()).queue();
     			return;
     		}
-    		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTask(input.trim()).getEmbed(Ref.BLUE)).queue();
+    		objMsgCh.sendMessage(workflowDB.getProject(mh.projectId).getTask(mh.name).getEmbed(Ref.BLUE)).queue();
     	}else if(command.equals("getTasks")) {
     		
     		
@@ -184,7 +196,7 @@ public class App extends ListenerAdapter
     	}else if(command.equals("editTask")) {
     		Project p = workflowDB.getProject(mh.projectId);  
     		Task t = p.getTask(mh.name);
-    		if(t== null) {
+    		if(t == null) {
     			EmbedBuilder eb = new EmbedBuilder();
     			eb.setColor(Ref.RED);
     			eb.setTitle("Error: The task '" + mh.name + "' does not exist. Please check for spelling errors.");
@@ -192,17 +204,74 @@ public class App extends ListenerAdapter
     			return;
     		}
     		MessageHarvester editmh = MessageHarvester.harvestTaskEdits(objMsg, t);
-    		
-    		
-    		
     		t.setDeadline(editmh.deadline);
     		t.setDescription(editmh.description);
-    		t.setName(editmh.name);
     		t.setAssignedMembers(editmh.team);
     		objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
     		workflowDB.save();
     	}else if(command.equals("complete")) {
+    		Project p = workflowDB.getProject(mh.projectId); 
+    		Task t = p.getTask(mh.name);
+    		if(t == null) {
+    			p.setCompleted(true);
+    			objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    		}else {
+    			t.setCompleted(true);
+    			objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		}
     		
+    		workflowDB.save();
+    	}else if(command.equalsIgnoreCase("WIP")) {
+    		Project p = workflowDB.getProject(mh.projectId); 
+    		Task t = p.getTask(mh.name);
+    		if(t == null) {
+    			p.setCompleted(false);
+    			objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    		}else {
+    			t.setCompleted(false);
+    			objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		}
+    		
+    		workflowDB.save();
+    	}else if(command.equals("setCompletion")) {
+    		Project p = workflowDB.getProject(mh.projectId); 
+    		Task t = null;
+    		try{
+    			 t = p.getTask(mh.name);
+    		}catch(NullPointerException npe) {
+    			
+    		}
+    		if(t == null) {
+    			if(input.contains("\"")) {
+    				EmbedBuilder eb = new EmbedBuilder();
+    				eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Task does not exist. Check for spelling errors!");
+    				objMsgCh.sendMessage(eb.build()).queue();
+    			}else {
+        			p.setCompletion(Integer.parseInt(input.trim()));
+        			objMsgCh.sendMessage(p.getEmbed(Ref.BLUE)).queue();
+    			}
+    		}else {
+    			t.setCompletion(Integer.parseInt(input.trim()));
+    			objMsgCh.sendMessage(t.getEmbed(Ref.BLUE)).queue();
+    		}
+    		workflowDB.save();
+    	}else if(command.equals("removeTask")) {
+    		Project p = workflowDB.getProject(mh.projectId);
+			if(p.hasTask(mh.name)) {
+				p.removeTask(mh.name);
+				EmbedBuilder eb = new EmbedBuilder();
+				eb.setColor(Ref.RED);
+				eb.setTitle("Task deleted.");
+				objMsgCh.sendMessage(eb.build()).queue();
+			}else {
+				EmbedBuilder eb = new EmbedBuilder();
+				eb.setColor(Ref.RED);
+				eb.setTitle("Error: Task does not exist. Did you forget to put quotation marks around the task name? Try typing \"TASK_NAME\"");
+				objMsgCh.sendMessage(eb.build()).queue();
+			}
+			
+    		workflowDB.save();
     	}
     	
     	

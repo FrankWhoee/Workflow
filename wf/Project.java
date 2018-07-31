@@ -146,6 +146,42 @@ public class Project extends TimerTask{
 	public void addTask(Task t) {
 		this.tasks.add(t);
 	}
+	
+	public boolean hasTask(Task t) {
+		for(Task task : tasks) {
+			if(task.getName().equals(t.getName())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean hasTask(String name) {
+		for(Task task : tasks) {
+			if(task.getName().equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public void removeTask(String name) {
+		for(int i = tasks.size() - 1; i >= 0; i--) {
+			if(tasks.get(i).getName().equals(name)) {
+				tasks.remove(i);
+			}
+		}
+		
+	}
+	
+	public void removeTask(Task t) {
+		for(int i = tasks.size() - 1; i >= 0; i--) {
+			if(tasks.get(i).getName().equals(t.getName())) {
+				tasks.remove(i);
+			}
+		}
+		
+	}
 
 	public void setName(String name) {
 		this.name = name;
@@ -201,7 +237,9 @@ public class Project extends TimerTask{
 			collaborators += tm.getUser().getAsMention() + "\n";
 		}
 		eb.addField("Project Channel:", App.jda.getTextChannelById(projectId).getAsMention(), false);
-		eb.addField("Members Assigned to this task:", collaborators,false);
+		eb.addField("Team:", collaborators,false);
+		String completion = isCompleted ? "Project is complete" : "Project is in progress";
+		eb.addField(completion,"Completion: " + this.completion + "%",false);
 		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), Ref.logoURL);
 		eb.setColor(c);
 		return eb.build();
