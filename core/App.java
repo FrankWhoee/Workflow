@@ -304,6 +304,15 @@ public class App extends ListenerAdapter
     		}
     	}else if(command.equals("getLogo")) {
     		objMsgCh.sendMessage(p.getLogo()).queue();
+    	}else if(command.equals("broadcast")) {
+    		String message = mh.name;
+    		EmbedBuilder eb = new EmbedBuilder();
+    		
+    		eb.setTitle("Message from " + objUser.getName());
+    		eb.setDescription(message);
+    		eb.setColor(p.getDEFAULT());
+    		
+    		p.broadcast(eb.build());
     	}
     	
     	

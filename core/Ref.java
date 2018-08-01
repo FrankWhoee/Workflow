@@ -63,6 +63,8 @@ public class Ref {
 			+ "\n     -Shows all the info for the specified task."
 			+ "\n\n"+prefix+"getTasks #projectChannel"
 			+ "\n     -Shows all the tasks for #projectChannel. If no project channel is specified, it defaults to the channel the command was typed in."
+			+ "\n\n"+prefix+"broadcast \"Message\""
+			+ "\n     -Broadcasts the Message to all team members in their DMs."
 			+ "```";
 	
 	public static final String helpMemberMessage = "```How to manage your members:"

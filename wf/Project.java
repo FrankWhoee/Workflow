@@ -19,6 +19,7 @@ import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.MessageEmbed.Field;
+import net.dv8tion.jda.core.entities.User;
 
 public class Project extends TimerTask{
 	
@@ -431,6 +432,24 @@ public class Project extends TimerTask{
 	public Long getProjectId() {
 		return projectId;
 	}
+	
+	public void broadcast(MessageEmbed me) {
+		for(TeamMember tm : team) {
+			User u = tm.getUser();
+			u.openPrivateChannel().queue(channel -> {
+				channel.sendMessage(me).queue();
+			});
+		}
+	}
+	
+	public void broadcast(String s) {
+		for(TeamMember tm : team) {
+			User u = tm.getUser();
+			u.openPrivateChannel().queue(channel -> {
+				channel.sendMessage(s).queue();
+			});
+		}
+	}
 
 	@Override
 	public void run() {
@@ -438,6 +457,13 @@ public class Project extends TimerTask{
 		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
 			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
 			objMsgCh.sendMessage(getEmbed(WARNING)).queue();
+			
+			EmbedBuilder eb = new EmbedBuilder();
+			eb.setTitle("Deadline reached for project '" + name + "'");
+			eb.setColor(WARNING);
+			broadcast(eb.build());
+			
+			broadcast(getEmbed(WARNING));
 		}
 	}
 	

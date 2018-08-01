@@ -12,6 +12,7 @@ import bot.workflow.database.workflowDB;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.core.entities.User;
 
 
 
@@ -62,12 +63,40 @@ public class Task extends TimerTask {
 		this.projectId = projectId;
 	}
 	
+	public void broadcast(MessageEmbed me) {
+		for(TeamMember tm : assignedMembers) {
+			User u = tm.getUser();
+			u.openPrivateChannel().queue(channel -> {
+				channel.sendMessage(me).queue();
+			});
+		}
+	}
+	
+	public void broadcast(String s) {
+		for(TeamMember tm : assignedMembers) {
+			User u = tm.getUser();
+			u.openPrivateChannel().queue(channel -> {
+				channel.sendMessage(s).queue();
+			});
+		}
+	}
+	
 	@Override
 	public void run() {
 		//Verify that deadline has not changed
 		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
 			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-			objMsgCh.sendMessage(getEmbed(workflowDB.getProject(projectId).getWARNING())).queue();
+			Color warning = workflowDB.getProject(projectId).getWARNING();
+			
+			objMsgCh.sendMessage(getEmbed(warning)).queue();
+			
+			EmbedBuilder eb = new EmbedBuilder();
+			eb.setTitle("Deadline reached for task '" + name + "'");
+			eb.setColor(warning);
+			broadcast(eb.build());
+			
+			broadcast(getEmbed(warning));
+			
 		}
 	}
 	
