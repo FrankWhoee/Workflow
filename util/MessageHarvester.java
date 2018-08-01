@@ -84,16 +84,27 @@ public class MessageHarvester {
 		}
 		
 		List<Role> taggedRoles = objMsg.getMentionedRoles();
+		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
+			Role r = taggedRoles.get(i);
+			System.out.println(r.getName());
+			//if(r.getName().equals("everyone")) {
+//				taggedRoles.remove(i);
+//			}
+		}
 		List<Member> taggedMembers = objMsg.getMentionedMembers();
 		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
 		List<TeamMember> team = new ArrayList<TeamMember>();
 		for(Member m : taggedMembers) {
 			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+			System.err.println(m.getNickname());
 			team.add(tm);
 		}
-		for(Member m : roleMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			team.add(tm);
+		if(taggedRoles.size() > 0) {
+			for(Member m : roleMembers) {
+				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+				System.out.println(m.getEffectiveName());
+				team.add(tm);
+			}
 		}
 		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
 		return mh;
@@ -220,16 +231,27 @@ public class MessageHarvester {
 		
 		
 		List<Role> taggedRoles = objMsg.getMentionedRoles();
+		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
+			Role r = taggedRoles.get(i);
+			System.out.println(r.getName());
+			//if(r.getName().equals("everyone")) {
+//				taggedRoles.remove(i);
+//			}
+		}
 		List<Member> taggedMembers = objMsg.getMentionedMembers();
 		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
 		List<TeamMember> team = new ArrayList<TeamMember>();
 		for(Member m : taggedMembers) {
 			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+			System.err.println(m.getNickname());
 			team.add(tm);
 		}
-		for(Member m : roleMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			team.add(tm);
+		if(taggedRoles.size() > 0) {
+			for(Member m : roleMembers) {
+				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+				System.out.println(m.getEffectiveName());
+				team.add(tm);
+			}
 		}
 		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
 		return mh;
@@ -281,16 +303,27 @@ public class MessageHarvester {
 		
 		
 		List<Role> taggedRoles = objMsg.getMentionedRoles();
+		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
+			Role r = taggedRoles.get(i);
+			System.out.println(r.getName());
+			//if(r.getName().equals("everyone")) {
+//				taggedRoles.remove(i);
+//			}
+		}
 		List<Member> taggedMembers = objMsg.getMentionedMembers();
 		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
 		List<TeamMember> team = new ArrayList<TeamMember>();
 		for(Member m : taggedMembers) {
 			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+			System.err.println(m.getNickname());
 			team.add(tm);
 		}
-		for(Member m : roleMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			team.add(tm);
+		if(taggedRoles.size() > 0) {
+			for(Member m : roleMembers) {
+				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
+				System.out.println(m.getEffectiveName());
+				team.add(tm);
+			}
 		}
 		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
 		return mh;

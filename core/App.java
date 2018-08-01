@@ -112,8 +112,16 @@ public class App extends ListenerAdapter
     		MessageHarvester createMH = MessageHarvester.harvest(objMsg);
     		
     		Project p = new Project(createMH.team, createMH.name, createMH.description, createMH.deadline, createMH.projectId);
+    		try{
+    			p.setTimer();
+    		}catch(IllegalArgumentException iae) {
+    			EmbedBuilder eb = new EmbedBuilder();
+        		eb.setColor(Ref.RED);
+    			eb.setTitle("Error: Timer delay is invalid.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+        		return;
+    		}
     		workflowDB.addProject(p);
-    		p.setTimer();
     		workflowDB.save();
     		objMsgCh.sendMessage(p.getEmbed(Ref.GREEN)).queue();
     		return;
@@ -146,6 +154,7 @@ public class App extends ListenerAdapter
     		eb.setColor(Ref.RED);
     		objMsgCh.sendMessage(eb.build()).queue();
     		workflowDB.save();
+    		//workflowDB.parseDB();
     	}else if(command.equalsIgnoreCase("addTask")) {
     		
     		Task t = new Task(mh.team, mh.name, mh.description, mh.deadline, mh.projectId);

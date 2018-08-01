@@ -68,8 +68,11 @@ public class workflowDB {
 	public static void removeProject(Long projectId) {
 		for(int i = 0; i < projects.size(); i++) {
 			Project p = projects.get(i);
-			if(p.getProjectId().equals(projectId)) {
+			Long id = p.getProjectId();
+			System.out.println(id + " compared to " + projectId + ": " + (id.equals(projectId)));
+			if(id.equals(projectId)) {
 				projects.remove(i);
+				System.out.println(projects.contains(p));
 				return;
 			}
 		}
@@ -110,7 +113,7 @@ public class workflowDB {
 			database.add(Long.toString(p.getProjectId()), p.toJson());
 		}
 		Set<String> keys = new TreeSet<String>();
-		for(String key : keys) {
+		for(String key : database.keySet()) {
 			keys.add(key);
 		}
 		for(String key : keys) {
