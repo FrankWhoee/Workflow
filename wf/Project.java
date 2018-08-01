@@ -70,6 +70,7 @@ public class Project extends TimerTask{
 		return p;
 	}
 	
+
 	
 	public String getLogoURL() {
 		return logoURL;
@@ -308,6 +309,7 @@ public class Project extends TimerTask{
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle(name);
 		eb.setDescription(description);
+		eb.setThumbnail(logoURL);
 		String collaborators = "";
 		for(TeamMember tm : team) {
 			collaborators += tm.getUser().getAsMention() + "\n";
@@ -330,6 +332,36 @@ public class Project extends TimerTask{
 		return null;
 	}	
 	
+	public List<MessageEmbed> getColours(){
+		EmbedBuilder eb = new EmbedBuilder();
+		List<MessageEmbed> output = new ArrayList<MessageEmbed>();
+		
+		eb.setTitle("BEGINNING");
+		eb.setColor(BEGINNING);
+		output.add(eb.build());
+		eb.clear();
+		
+		eb.setTitle("DEFAULT");
+		eb.setColor(DEFAULT);
+		output.add(eb.build());
+		eb.clear();
+		
+		eb.setTitle("WARNING");
+		eb.setColor(WARNING);
+		output.add(eb.build());
+		eb.clear();
+		
+		return output;
+	}
+	
+	public MessageEmbed getLogo() {
+		EmbedBuilder eb = new EmbedBuilder();
+		eb.setTitle("Logo");
+		eb.setColor(DEFAULT);
+		eb.setThumbnail(logoURL);
+		return eb.build();
+	}
+	
 	public MessageEmbed getTasksEmbed() {
 		String tasks = "";
 		for(Task t : this.tasks) {
@@ -347,7 +379,7 @@ public class Project extends TimerTask{
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle("Tasks");
 		eb.addField("", tasks, true);
-		eb.setColor(Ref.BLUE);
+		eb.setColor(DEFAULT);
 		eb.setThumbnail(getLogoURL());
 		return eb.build();
 	}
@@ -405,7 +437,7 @@ public class Project extends TimerTask{
 		//Verify that deadline has not changed
 		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
 			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-			objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
+			objMsgCh.sendMessage(getEmbed(WARNING)).queue();
 		}
 	}
 	

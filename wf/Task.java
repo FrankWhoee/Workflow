@@ -8,7 +8,7 @@ import java.util.TimerTask;
 
 import bot.workflow.core.App;
 import bot.workflow.core.Ref;
-
+import bot.workflow.database.workflowDB;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
@@ -67,7 +67,7 @@ public class Task extends TimerTask {
 		//Verify that deadline has not changed
 		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
 			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-			objMsgCh.sendMessage(getEmbed(Ref.RED)).queue();
+			objMsgCh.sendMessage(getEmbed(workflowDB.getProject(projectId).getWARNING())).queue();
 		}
 	}
 	
