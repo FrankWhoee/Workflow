@@ -238,7 +238,7 @@ public class MessageHarvester {
 	public static Color harvestColor(Message objMsg) {
 		String input = objMsg.getContentRaw();
 		String colourCode = input.substring(input.indexOf("#") + 1);
-		Color c = Color.decode(colourCode);
+		Color c = Color.decode("0x" + colourCode);
 		return c;
 	}
 	

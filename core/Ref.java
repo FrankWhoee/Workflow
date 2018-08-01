@@ -11,6 +11,7 @@ public class Ref {
 	public static final String prefix = "wf.";
 	public static final String version = "1.0.0";
 	public static final File workflowDB = new File("../WorkflowDB/workflow.json");
+	public static final File workflowDBParent = new File("../WorkflowDB");
 	public static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	public static final DateFormat dateFormatTrimmed = new SimpleDateFormat("yyyy/MM/dd");
 	
@@ -32,6 +33,8 @@ public class Ref {
 					+ "\n     -Returns all the commands that both projects and tasks share."
 			+ "\n\n"+prefix+"helpMisc"
 					+ "\n     -Returns all the miscellaneous commands."
+			+ "\n\n"+prefix+"helpCosmetic"
+					+ "\n     -Returns all the cosmetic commands you may need."
 			+ "```";
 	
 	public static final String helpProjectMessage = "```How to manage your projects:"
@@ -84,5 +87,17 @@ public class Ref {
 	public static final String helpMiscMessage = "```How to use Workflow:\n"
 			+ "\n\n"+prefix+"status"
 					+ "\n     -Prints Workflow's status."
+			+ "```";
+	
+	public static final String helpCosmeticMessage = "```How to personalise your project:\n"
+			+ "\n\n"+prefix+"setLogo \"LOGO_URL\""
+					+ "\n     -Sets the logo that will be used by Workflow when displaying your project."
+			+ "\n\n"+prefix+"setColour \"Color category\" #0xXXXXXX"
+					+ "\n     -Sets the colours that will be used. Color category can be one of these three: WARNING,BEGINNING,DEFAULT"
+					+ "\n      To choose a colour you want, go to Google and search \"colour picker\" then copy and paste the values in the format of #RRGGBB"
+			+ "\n\n"+prefix+"getLogo"
+					+ "\n      -Returns logo."
+			+ "\n\n"+prefix+"getColours"
+					+ "\n     -Returns colour settings."
 			+ "```";
 }

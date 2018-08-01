@@ -96,6 +96,10 @@ public class App extends ListenerAdapter
     		objMsgCh.sendMessage(Ref.helpMiscMessage).queue();
     		return;
     		
+    	}else if(command.equalsIgnoreCase("helpCosmetic")) {
+    		objMsgCh.sendMessage(Ref.helpCosmeticMessage).queue();
+    		return;
+    		
     	}else if(command.equalsIgnoreCase("status")) {
     		EmbedBuilder eb = new EmbedBuilder();
     		eb.setTitle("Workflow " + Ref.version);
@@ -273,7 +277,7 @@ public class App extends ListenerAdapter
     			e.printStackTrace();
     			EmbedBuilder eb = new EmbedBuilder();
 				eb.setColor(Ref.RED);
-				eb.setTitle("Error: Improperly formatted Color code. Use the format `" + Ref.prefix + "colour \"COLOUR NAME\" #0xXXXXXX`");
+				eb.setTitle("Error: Improperly formatted Color code. Use the format `" + Ref.prefix + "colour \"COLOUR NAME\" #RRRGGBB`");
 				objMsgCh.sendMessage(eb.build()).queue();
 				return;
     		}

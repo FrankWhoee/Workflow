@@ -1,5 +1,6 @@
 package bot.workflow.database;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,15 @@ public class workflowDB {
 			System.err.println("Error reading JSON database.");
 			if(!Ref.workflowDB.exists()) {
 				System.err.println("JSON does not exist.");
+				if(!Ref.workflowDBParent.exists()) {
+					System.err.println("Folder does not exist. Creating new folder...");
+					try {
+						Ref.workflowDBParent.mkdir();
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
 				database = new JsonObject();
 				rawSave();
 				System.err.println("New JSON file created.");
