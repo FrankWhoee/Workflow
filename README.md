@@ -12,11 +12,11 @@ With projects you can:
 * Show project progess
 * Create a team
 * Broadcast messages to team members
+* Easily transfer projects to different channels or servers
 
 Workflow will automatically remind you when deadlines are met! A message will be broadcast to members assigned to the specific task or project.
 
 ## Tasks
-* Create Tasks
-  * Assign members to tasks
-  * Set Task deadlines
-  * Show task progress
+* Assign members to tasks
+* Set Task deadlines
+* Show task progress
