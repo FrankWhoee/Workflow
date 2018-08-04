@@ -63,6 +63,11 @@ public class Task extends TimerTask {
 		this.projectId = projectId;
 	}
 	
+	public Task(String name) {
+		super();
+		this.name = name;
+	}
+	
 	public void broadcast(MessageEmbed me) {
 		for(TeamMember tm : assignedMembers) {
 			User u = tm.getUser();

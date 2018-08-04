@@ -1,9 +1,18 @@
 package bot.workflow.util;
 
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.*;
+
+import org.apache.commons.io.FileUtils;
 
 public class StringUtil {
 
@@ -24,5 +33,14 @@ public class StringUtil {
 		writer.println(data);
 		writer.close();
 	}
+	
+	 public static void saveFileFromUrl(File f, String fileUrl) throws MalformedURLException, IOException {
+         URL url=new URL(fileUrl);
+         URLConnection conn = url.openConnection();
+         conn.setRequestProperty("User-Agent", "Workflow");
+         conn.connect();
+         FileUtils.copyInputStreamToFile(conn.getInputStream(), f);
+		 
+	 }
 	
 }

@@ -19,6 +19,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.Role;
+import net.dv8tion.jda.core.entities.User;
 
 public class MessageHarvester {
 	
@@ -91,18 +92,22 @@ public class MessageHarvester {
 //				taggedRoles.remove(i);
 //			}
 		}
-		List<Member> taggedMembers = objMsg.getMentionedMembers();
+		List<User> taggedMembers = objMsg.getMentionedUsers();
+		
 		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
 		List<TeamMember> team = new ArrayList<TeamMember>();
-		for(Member m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			System.err.println(m.getNickname());
+		if(!taggedMembers.contains(objMsg.getAuthor())) {
+			TeamMember tm = new TeamMember(objMsg.getAuthor().getIdLong(),projectId);
+			team.add(tm);
+		}
+		
+		for(User m : taggedMembers) {
+			TeamMember tm = new TeamMember(m.getIdLong(),projectId);
 			team.add(tm);
 		}
 		if(taggedRoles.size() > 0) {
 			for(Member m : roleMembers) {
 				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				System.out.println(m.getEffectiveName());
 				team.add(tm);
 			}
 		}
@@ -135,10 +140,12 @@ public class MessageHarvester {
 			deadlineString = between(objMsg,"<",">");
 		} catch (Exception e1) {
 		}
-		Date deadline = new Date();
+		
+		Date deadline = new Date(32503680000000L);
 		try {
 			 deadline = Ref.dateFormat.parse(deadlineString);
 		} catch (ParseException e) {
+			deadline = new Date(32503680000000L);
 			if(!suppressWarnings) {
 				EmbedBuilder eb = new EmbedBuilder();
     			eb.setColor(Ref.RED);
@@ -172,18 +179,22 @@ public class MessageHarvester {
 //				taggedRoles.remove(i);
 //			}
 		}
-		List<Member> taggedMembers = objMsg.getMentionedMembers();
+		List<User> taggedMembers = objMsg.getMentionedUsers();
+		
 		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
 		List<TeamMember> team = new ArrayList<TeamMember>();
-		for(Member m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			System.err.println(m.getNickname());
+		if(!taggedMembers.contains(objMsg.getAuthor())) {
+			TeamMember tm = new TeamMember(objMsg.getAuthor().getIdLong(),projectId);
+			team.add(tm);
+		}
+		
+		for(User m : taggedMembers) {
+			TeamMember tm = new TeamMember(m.getIdLong(),projectId);
 			team.add(tm);
 		}
 		if(taggedRoles.size() > 0) {
 			for(Member m : roleMembers) {
 				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				System.out.println(m.getEffectiveName());
 				team.add(tm);
 			}
 		}

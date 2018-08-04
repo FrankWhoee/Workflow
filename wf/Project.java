@@ -171,7 +171,12 @@ public class Project extends TimerTask{
 	public void activate() {
 		setTimer();
 		for(Task t : tasks) {
-			t.setTimer();
+			try {
+				t.setTimer();
+			}catch(Exception e) {
+				
+			}
+			
 		}
 	}
 
@@ -265,12 +270,21 @@ public class Project extends TimerTask{
 		return false;
 	}
 	
+	public boolean hasTask(int index) {
+		return index >= 0 && index < tasks.size();
+	}
+	
 	public void removeTask(String name) {
 		for(int i = tasks.size() - 1; i >= 0; i--) {
 			if(tasks.get(i).getName().equals(name)) {
 				tasks.remove(i);
 			}
 		}
+		
+	}
+	
+	public void removeTask(int index) {
+		tasks.remove(index);
 		
 	}
 	
@@ -333,6 +347,10 @@ public class Project extends TimerTask{
 		return null;
 	}	
 	
+	public Task getTask(int index) {
+		return tasks.get(index);
+	}	
+	
 	public List<MessageEmbed> getColours(){
 		EmbedBuilder eb = new EmbedBuilder();
 		List<MessageEmbed> output = new ArrayList<MessageEmbed>();
@@ -375,7 +393,9 @@ public class Project extends TimerTask{
 				}
 			}
 			//+ "' assigned to " + names
-			tasks += "`'" + t.getName()  + "' Deadline: " + Ref.dateFormatTrimmed.format(deadline) + "`\n";
+			String status = t.isCompleted() ? "COMPLETED" : "WIP";
+			tasks += "`" + (this.tasks.indexOf(t) + 1)  + ". "+ t.getName()  + "` "
+					+ "\n`Deadline: " + Ref.dateFormatTrimmed.format(deadline) + " " + status + " [" + t.getCompletion() + "%]`\n\n";
 		}
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle("Tasks");
