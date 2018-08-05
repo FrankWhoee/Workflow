@@ -395,7 +395,7 @@ public class Project extends TimerTask{
 			//+ "' assigned to " + names
 			String status = t.isCompleted() ? "COMPLETED" : "WIP";
 			tasks += "`" + (this.tasks.indexOf(t) + 1)  + ". "+ t.getName()  + "` "
-					+ "\n`Deadline: " + Ref.dateFormatTrimmed.format(deadline) + " " + status + " [" + t.getCompletion() + "%]`\n\n";
+					+ "\n`Deadline: " + Ref.dateFormatTrimmed.format(t.getDeadline()) + " " + status + " [" + t.getCompletion() + "%]`\n\n";
 		}
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle("Tasks");

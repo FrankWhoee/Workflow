@@ -191,6 +191,12 @@ public class App extends ListenerAdapter
     		workflowDB.save();
     		
     	
+    	}else if(command.equalsIgnoreCase("terminate") && objUser.getIdLong() == Ref.myId) {
+    		EmbedBuilder eb = new EmbedBuilder();
+    		eb.setColor(Ref.RED);
+			eb.setTitle("Shutting down...");
+			objMsgCh.sendMessage(eb.build()).queue();
+    		jda.shutdown();
     	}
     	
     	if(!workflowDB.database.has("" + mh.projectId)) {
@@ -253,23 +259,69 @@ public class App extends ListenerAdapter
     	}else if(command.equalsIgnoreCase("getTasks")) {
     		objMsgCh.sendMessage(p.getTasksEmbed()).queue();
     	}else if(command.equalsIgnoreCase("addMembers") || command.equalsIgnoreCase("addMember")) {
-    		if(mh.name.equalsIgnoreCase("")){
-    			p.addMembers(mh.team);
-    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		if(mh.description.equalsIgnoreCase("")) {
+    			if(mh.name.equalsIgnoreCase("")){
+        			p.addMembers(mh.team);
+        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+        		}else {
+        			Task t = p.getTask(mh.name);
+        			t.addMembers(mh.team);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+        		}
     		}else {
-    			Task t = p.getTask(mh.name);
-    			t.addMembers(mh.team);
-    			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			int index = 0;
+    			try {
+    				index = Integer.parseInt(mh.description);
+    			}catch(Exception e) {
+    				EmbedBuilder eb = new EmbedBuilder();
+    	    		eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    				return;
+    			}
+    			if(p.hasTask(index - 1)) {
+    				Task t = p.getTask(index - 1);
+    				t.addMembers(mh.team);
+    				objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			}else {
+    				EmbedBuilder eb = new EmbedBuilder();
+    				eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Task does not exist. Index out of bounds. Select an integer from 1-" + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    			}
     		}
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("removeMembers") || command.equalsIgnoreCase("removeMember")) {
-    		if(mh.name.equalsIgnoreCase("")){
-    			p.removeMembers(mh.team);
-    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		if(mh.description.equalsIgnoreCase("")) {
+        		workflowDB.save();if(mh.name.equalsIgnoreCase("")){
+        			p.removeMembers(mh.team);
+        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+        		}else {
+        			Task t = p.getTask(mh.name);
+        			t.removeMembers(mh.team);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+        		}
     		}else {
-    			Task t = p.getTask(mh.name);
-    			t.removeMembers(mh.team);
-    			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			int index = 0;
+    			try {
+    				index = Integer.parseInt(mh.description);
+    			}catch(Exception e) {
+    				EmbedBuilder eb = new EmbedBuilder();
+    	    		eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    				return;
+    			}
+    			if(p.hasTask(index - 1)) {
+    				Task t = p.getTask(index - 1);
+    				t.removeMembers(mh.team);
+    				objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			}else {
+    				EmbedBuilder eb = new EmbedBuilder();
+    				eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Task does not exist. Index out of bounds. Select an integer from 1-" + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    			}
     		}
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("editProject")) {

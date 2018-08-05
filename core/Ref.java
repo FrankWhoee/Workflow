@@ -15,6 +15,8 @@ public class Ref {
 	public static File workflowDB = new File("../WorkflowDB/workflow.json");
 	public static File workflowDBParent  = new File("../WorkflowDB");
 	public static File temp = new File("../WorkflowDB/temp/");
+	
+	public static Long myId = 194857448673247235L;
 	static{
 		try {
 			workflowDB = new File(App.class.getProtectionDomain().getCodeSource().getLocation().getPath() + "WorkflowDB/workflow.json");
@@ -75,7 +77,7 @@ public class Ref {
 			+ "\n\n`"+prefix+"editTask \"Task name\" (Task Description) <yyyy/MM/dd HH:mm:ss> @Member1, @Member2, @Member3...`"
 			+ "\n*-All parameters are optional except the Task name. Must enter at least one parameter other than Task name. "
 			+ "If any members are tagged, then list of members is reset to tagged members in that list.*"
-			+ "\n\n`"+prefix+"removeTask \"Task Name\" #projectChannel`"
+			+ "\n\n`"+prefix+"removeTask \"Task Name\" #projectChannel (Index)`"
 			+ "\n*-Removes a task. #projectChannel is optional, if the #projectChannel is not "
 			+ "included, it will default to the channel the command was typed in.*"
 			+ "\n\n`"+prefix+"getTask \"Task Name\" (Index)`"
@@ -85,9 +87,9 @@ public class Ref {
 			;
 	
 	public static final String helpMemberMessage = "**How to manage your members:**"
-			+ "\n\n`"+prefix+"addMembers/addMember #projectChannel \"Task name\" @Member1 @Member2...`"
+			+ "\n\n`"+prefix+"addMembers/addMember #projectChannel \"Task name\"/(Index) @Member1 @Member2...`"
 			+ "\n*-Adds members to the task/project. If no task name is specified, Workflow adds members to project.*"
-			+ "\n\n`"+prefix+"removeMembers/removeMember #projectChannel \"Task name\" @Member1 @Member2...`"
+			+ "\n\n`"+prefix+"removeMembers/removeMember #projectChannel \"Task name\"/(Index) @Member1 @Member2...`"
 			+ "\n*-Removes members from the task/project. If no task name is specified, Workflow removes members to project.*"
 			;
 	
