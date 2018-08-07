@@ -117,7 +117,9 @@ public class Task extends TimerTask {
 		eb.addField("Members Assigned to this task:", collaborators,false);
 		String completion = isCompleted ? "Task is complete" : "Task is in progress";
 		eb.addField(completion,"Completion: " + this.completion + "%",false);
-		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), Ref.logoURL);
+		String logoURL = workflowDB.getProject(projectId).getLogoURL();
+		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), logoURL);
+		eb.setImage(logoURL);
 		eb.setColor(c);
 		return eb.build();
 	}

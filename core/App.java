@@ -235,7 +235,7 @@ public class App extends ListenerAdapter
     		workflowDB.save();
     		
     		objMsgCh.sendMessage(t.getEmbed(p.getBEGINNING())).queue();
-    	}else if(command.equalsIgnoreCase("getProject")) {   		
+    	}else if(command.equalsIgnoreCase("getProject") || command.equalsIgnoreCase("Project")) {   		
     		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     	}else if(command.equalsIgnoreCase("getTask")) {
     		if(mh.description.equalsIgnoreCase("")) {
@@ -254,10 +254,14 @@ public class App extends ListenerAdapter
     			
     			objMsgCh.sendMessage(p.getTask(index - 1).getEmbed(p.getDEFAULT())).queue();
     		}
-    		
-    		
-    	}else if(command.equalsIgnoreCase("getTasks")) {
-    		objMsgCh.sendMessage(p.getTasksEmbed()).queue();
+    	}else if(command.equalsIgnoreCase("getTasks") || command.equalsIgnoreCase("tasks") || command.equalsIgnoreCase("todo")) {
+    		if(objMsg.getMentionedMembers().size() > 0) {
+    			for(MessageEmbed me : p.getTasksByMember(mh.team.get(0))) {
+    				objMsgCh.sendMessage(me).queue();
+    			}
+    		}else {
+    			objMsgCh.sendMessage(p.getTasksEmbed()).queue();
+    		}
     	}else if(command.equalsIgnoreCase("addMembers") || command.equalsIgnoreCase("addMember")) {
     		if(mh.description.equalsIgnoreCase("")) {
     			if(mh.name.equalsIgnoreCase("")){
@@ -351,26 +355,70 @@ public class App extends ListenerAdapter
     		objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("complete")) {
-    		Task t = p.getTask(mh.name);
-    		if(t == null) {
-    			p.setCompleted(true);
-    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		if(mh.description.equalsIgnoreCase("")) {
+    			Task t = p.getTask(mh.name);
+        		if(t == null) {
+        			p.setCompleted(true);
+        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+        		}else {
+        			t.setCompleted(true);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+        		}
     		}else {
-    			t.setCompleted(true);
-    			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			int index = 0;
+    			try {
+    				index = Integer.parseInt(mh.description);
+    			}catch(Exception e) {
+    				EmbedBuilder eb = new EmbedBuilder();
+    	    		eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    				return;
+    			}
+    			if(p.hasTask(index - 1)) {
+    				Task t = p.getTask(index - 1);
+    				t.setCompleted(true);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			}else {
+    				EmbedBuilder eb = new EmbedBuilder();
+    				eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Task does not exist. Index out of bounds. Select an integer from 1-" + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    			}
     		}
-    		
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("WIP")) {
-    		Task t = p.getTask(mh.name);
-    		if(t == null) {
-    			p.setCompleted(false);
-    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		if(mh.description.equalsIgnoreCase("")) {
+    			Task t = p.getTask(mh.name);
+        		if(t == null) {
+        			p.setCompleted(false);
+        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+        		}else {
+        			t.setCompleted(false);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+        		}
     		}else {
-    			t.setCompleted(false);
-    			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			int index = 0;
+    			try {
+    				index = Integer.parseInt(mh.description);
+    			}catch(Exception e) {
+    				EmbedBuilder eb = new EmbedBuilder();
+    	    		eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    				return;
+    			}
+    			if(p.hasTask(index - 1)) {
+    				Task t = p.getTask(index - 1);
+    				t.setCompleted(false);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			}else {
+    				EmbedBuilder eb = new EmbedBuilder();
+    				eb.setColor(Ref.RED);
+    				eb.setTitle("Error: Task does not exist. Index out of bounds. Select an integer from 1-" + (p.getTasks().size()));
+    				objMsgCh.sendMessage(eb.build()).queue();
+    			}
     		}
-    		
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("setCompletion")) {
     		Task t = null;

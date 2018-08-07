@@ -214,6 +214,16 @@ public class Project extends TimerTask{
 		}
 	}
 	
+	public List<MessageEmbed> getTasksByMember(TeamMember tm) {
+		List<MessageEmbed> output = new ArrayList<>();
+		for(Task t : tasks) {
+			if(t.hasMember(tm)) {
+				output.add(t.getEmbed(DEFAULT));
+			}
+		}
+		return output;
+	}
+	
 	public void clearMembers() {
 		team.clear();
 	}
