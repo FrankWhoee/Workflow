@@ -29,6 +29,7 @@ import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
+import net.dv8tion.jda.core.managers.AudioManager;
 
 
 public class App extends ListenerAdapter
@@ -58,7 +59,8 @@ public class App extends ListenerAdapter
         workflowDB.parseDB();
     }
     
-    @Override
+    @SuppressWarnings("static-access")
+	@Override
     public void onMessageReceived(MessageReceivedEvent evt) {
     	//Objects
     	Message objMsg = evt.getMessage();
@@ -86,7 +88,7 @@ public class App extends ListenerAdapter
     		//System.out.print(command);
     		
     	}
-    	MessageHarvester mh = MessageHarvester.harvest(objMsg,true);
+    	MessageHarvester mh = MessageHarvester.harvest(objMsg);
     	
     	if(command.equalsIgnoreCase("help")) {
     		objMsgCh.sendMessage(Ref.generalHelpMessage).queue();
@@ -122,10 +124,23 @@ public class App extends ListenerAdapter
     		objMsgCh.sendMessage(eb.build()).queue();
     		return;
     		
-    	}else if(command.equalsIgnoreCase("createProject")) {
-    		MessageHarvester createMH = MessageHarvester.harvest(objMsg);
-    		
-    		Project p = new Project(createMH.team, createMH.name, createMH.description, createMH.deadline, createMH.projectId);
+    	}else if(command.equalsIgnoreCase("createProject") || command.equalsIgnoreCase("addProject") || command.equalsIgnoreCase("newProject")) {
+    		if(workflowDB.hasProject(mh.projectId)) {
+    			objMsgCh.sendMessage("This channel already has a project.").queue();
+    			return;
+    		}
+    		if(mh.deadline == null) {
+    			mh.deadline = Ref.DEFAULT_DATE;
+    		}
+    		if(mh.team == null) {
+    			mh.team = new ArrayList<>();
+    		}
+    		mh.team.add(new TeamMember(objUser.getIdLong(),mh.projectId));
+    		if(mh.description == null) {
+    			mh.description = "";
+    		}
+    		Project p = new Project(mh.team, mh.name, mh.description, mh.deadline, mh.projectId);
+    		workflowDB.addProject(p);
     		try{
     			p.setTimer();
     		}catch(IllegalArgumentException iae) {
@@ -135,7 +150,6 @@ public class App extends ListenerAdapter
     			objMsgCh.sendMessage(eb.build()).queue();
         		return;
     		}
-    		workflowDB.addProject(p);
     		workflowDB.save();
     		objMsgCh.sendMessage(p.getEmbed(Ref.GREEN)).queue();
     		return;
@@ -191,7 +205,7 @@ public class App extends ListenerAdapter
     		workflowDB.save();
     		
     	
-    	}else if(command.equalsIgnoreCase("terminate") && objUser.getIdLong() == Ref.myId) {
+    	}else if(command.equalsIgnoreCase("terminate") && Ref.adminIds.contains(objUser.getIdLong())) {
     		EmbedBuilder eb = new EmbedBuilder();
     		eb.setColor(Ref.RED);
 			eb.setTitle("Shutting down...");
@@ -210,49 +224,69 @@ public class App extends ListenerAdapter
     	//Now guaranteed that this channel or tagged channel is associated with a project.
     	Project p = workflowDB.getProject(mh.projectId);
     	
-    	//Verify that user is part of the project
-    	if(!p.hasMember(objUser.getIdLong())) {
-    		EmbedBuilder eb = new EmbedBuilder();
-    		eb.setColor(Ref.RED);
-			eb.setTitle("Error: " + objUser.getAsMention() + " is not on this team.");
-			objMsgCh.sendMessage(eb.build()).queue();
-    		return;
+    	//Verify that user is part of the project or is admin and has command ?force?
+    	if(!Ref.adminIds.contains(objUser.getIdLong()) || !mh.command.equalsIgnoreCase("force")) {
+    		if(!p.hasMember(objUser.getIdLong()) && !mh.command.equalsIgnoreCase("force")) {
+        		EmbedBuilder eb = new EmbedBuilder();
+        		eb.setColor(Ref.RED);
+    			eb.setTitle("Error: " + objUser.getName() + " is not on this team.");
+    			objMsgCh.sendMessage(eb.build()).queue();
+        		return;
+    		}
     	}
-    	//Now guaranteed that this user has access to this project.
-    	if(command.equalsIgnoreCase("delete")) {	
+    	
+    	if(mh.command.equalsIgnoreCase("force") && Ref.adminIds.contains(objUser.getIdLong())) {
     		EmbedBuilder eb = new EmbedBuilder();
-			workflowDB.removeProject(mh.projectId);
-    		eb.setTitle("Project "+mh.projectId+" deleted.");
-    		eb.setColor(Ref.RED);
-    		objMsgCh.sendMessage(eb.build()).queue();
-    		workflowDB.save();
-    		//workflowDB.parseDB();
-    	}else if(command.equalsIgnoreCase("addTask")) {
+    		eb.setColor(Ref.YELLOW);
+			eb.setTitle("Permission granted.");
+			objMsgCh.sendMessage(eb.build()).queue();
+    	}
+    	
+    	//Now guaranteed that this user has access to this project.
+    	if(command.equalsIgnoreCase("delete")) {
+    		if(mh.name != null && mh.name.equals(p.getName())) {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			workflowDB.removeProject(mh.projectId);
+        		eb.setTitle("Project '"+p.getName()+"' deleted.");
+        		eb.setColor(Ref.RED);
+        		objMsgCh.sendMessage(eb.build()).queue();
+        		workflowDB.save();
+    		}else {
+    			EmbedBuilder eb = new EmbedBuilder();
+    			eb.setTitle("Please type wf.delete \"" + p.getName() + "\" to delete this project.");
+    			eb.setColor(Ref.YELLOW);
+    			objMsgCh.sendMessage(eb.build()).queue();
+    		}
     		
-    		Task t = new Task(mh.team, mh.name, mh.description, mh.deadline, mh.projectId);
-    		t.setTimer();
+    	}else if(command.equalsIgnoreCase("addTask") || command.equalsIgnoreCase("newTask")) {
+    		//System.out.println(mh.deadline);
+    		Date deadline = mh.deadline;
+    		if(mh.deadline == null) {
+    			deadline = Ref.DEFAULT_DATE;
+    		}
+    		//System.out.println(mh.deadline);
+    		//System.out.println(deadline);
+    		//System.out.println(Ref.DEFAULT_DATE);
+    		if(mh.team == null) {
+    			mh.team = new ArrayList<>();
+    			mh.team.add(TeamMember.toTeamMember(objUser, p.getProjectId()));
+    		}
+    		Task t = new Task(mh.team, mh.name, mh.description, deadline, mh.projectId);
+    		System.out.println(t.getDeadlineString());
     		p.addTask(t);
     		workflowDB.save();
-    		
+    		t.setTimer();
     		objMsgCh.sendMessage(t.getEmbed(p.getBEGINNING())).queue();
     	}else if(command.equalsIgnoreCase("getProject") || command.equalsIgnoreCase("Project")) {   		
     		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-    	}else if(command.equalsIgnoreCase("getTask")) {
-    		if(mh.description.equalsIgnoreCase("")) {
-    			objMsgCh.sendMessage(p.getTask(mh.name).getEmbed(p.getDEFAULT())).queue();
+    	}else if(command.equalsIgnoreCase("getTask") || command.equalsIgnoreCase("task")) {
+    		if(mh.index <= 0) {
+    			EmbedBuilder eb = new EmbedBuilder();
+	    		eb.setColor(Ref.RED);
+				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()) + " but greater than or equal to 1.");
+				objMsgCh.sendMessage(eb.build()).queue();
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index.");
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
-    			
-    			objMsgCh.sendMessage(p.getTask(index - 1).getEmbed(p.getDEFAULT())).queue();
+    			objMsgCh.sendMessage(p.getTask(mh.index - 1).getEmbed(p.getDEFAULT())).queue();
     		}
     	}else if(command.equalsIgnoreCase("getTasks") || command.equalsIgnoreCase("tasks") || command.equalsIgnoreCase("todo")) {
     		if(objMsg.getMentionedMembers().size() > 0) {
@@ -263,26 +297,11 @@ public class App extends ListenerAdapter
     			objMsgCh.sendMessage(p.getTasksEmbed()).queue();
     		}
     	}else if(command.equalsIgnoreCase("addMembers") || command.equalsIgnoreCase("addMember")) {
-    		if(mh.description.equalsIgnoreCase("")) {
-    			if(mh.name.equalsIgnoreCase("")){
-        			p.addMembers(mh.team);
-        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-        		}else {
-        			Task t = p.getTask(mh.name);
-        			t.addMembers(mh.team);
-        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
-        		}
+    		if(mh.index == -1) {
+    			p.addMembers(mh.team);
+    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
+    			int index = mh.index;
     			if(p.hasTask(index - 1)) {
     				Task t = p.getTask(index - 1);
     				t.addMembers(mh.team);
@@ -296,26 +315,11 @@ public class App extends ListenerAdapter
     		}
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("removeMembers") || command.equalsIgnoreCase("removeMember")) {
-    		if(mh.description.equalsIgnoreCase("")) {
-        		workflowDB.save();if(mh.name.equalsIgnoreCase("")){
-        			p.removeMembers(mh.team);
-        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-        		}else {
-        			Task t = p.getTask(mh.name);
-        			t.removeMembers(mh.team);
-        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
-        		}
+    		if(mh.index == -1) {
+    			p.removeMembers(mh.team);
+    			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
+    			int index = mh.index;
     			if(p.hasTask(index - 1)) {
     				Task t = p.getTask(index - 1);
     				t.removeMembers(mh.team);
@@ -328,53 +332,53 @@ public class App extends ListenerAdapter
     			}
     		}
     		workflowDB.save();
-    	}else if(command.equalsIgnoreCase("editProject")) {
-    		Project project = workflowDB.getProject(objMsgCh.getIdLong());
-    		MessageHarvester editmh = MessageHarvester.harvestProjectEdits(objMsg, p);
-    		
-    		project.setDeadline(editmh.deadline);
-    		project.setDescription(editmh.description);
-    		project.setName(editmh.name);
-    		project.setProjectId(editmh.projectId);
-    		project.setTeam(editmh.team);
-    		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-    		workflowDB.save();
-    	}else if(command.equalsIgnoreCase("editTask")) {
-    		Task t = p.getTask(mh.name);
-    		if(t == null) {
-    			EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: The task '" + mh.name + "' does not exist. Please check for spelling errors.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-    			return;
-    		}
-    		MessageHarvester editmh = MessageHarvester.harvestTaskEdits(objMsg, t);
-    		t.setDeadline(editmh.deadline);
-    		t.setDescription(editmh.description);
-    		t.setAssignedMembers(editmh.team);
-    		objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
-    		workflowDB.save();
-    	}else if(command.equalsIgnoreCase("complete")) {
-    		if(mh.description.equalsIgnoreCase("")) {
-    			Task t = p.getTask(mh.name);
-        		if(t == null) {
-        			p.setCompleted(true);
-        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-        		}else {
-        			t.setCompleted(true);
-        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    	}else if(command.equalsIgnoreCase("edit")) {
+    		if(mh.index == -1) {
+    			Project project = workflowDB.getProject(objMsgCh.getIdLong());
+        		
+        		if(mh.deadline != null) {
+        			project.setDeadline(mh.deadline);
         		}
+        		if(mh.description != null) {
+        			project.setDescription(mh.description);
+        		}
+        		if(mh.name != null) {
+        			project.setName(mh.name);
+        		}
+        		if(mh.team != null) {
+        			project.setTeam(mh.team);
+        		}
+        		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
+    			Task task = p.getTask(mh.index);
+        		if(task == null) {
+        			EmbedBuilder eb = new EmbedBuilder();
+        			eb.setColor(Ref.RED);
+        			eb.setTitle("Error: The task '" + mh.name + "' does not exist. Please check for spelling errors.");
+        			objMsgCh.sendMessage(eb.build()).queue();
+        			return;
+        		}
+        		if(mh.deadline != null) {
+        			task.setDeadline(mh.deadline);
+        		}
+        		if(mh.description != null) {
+        			task.setDescription(mh.description);
+        		}
+        		if(mh.name != null) {
+        			task.setName(mh.name);
+        		}
+        		if(mh.team != null) {
+        			task.setAssignedMembers(mh.team);
+        		}
+        		objMsgCh.sendMessage(task.getEmbed(p.getDEFAULT())).queue();
+    		}
+    		workflowDB.save();
+    	}else if(command.equalsIgnoreCase("complete") || command.equalsIgnoreCase("done")) {
+    		if(mh.index == -1) {
+        		p.setCompleted(true);
+        		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		}else {
+    			int index = mh.index;
     			if(p.hasTask(index - 1)) {
     				Task t = p.getTask(index - 1);
     				t.setCompleted(true);
@@ -388,26 +392,11 @@ public class App extends ListenerAdapter
     		}
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("WIP")) {
-    		if(mh.description.equalsIgnoreCase("")) {
-    			Task t = p.getTask(mh.name);
-        		if(t == null) {
-        			p.setCompleted(false);
-        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
-        		}else {
-        			t.setCompleted(false);
-        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
-        		}
+    		if(mh.index == -1) {
+        		p.setCompleted(false);
+        		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
+    			int index = mh.index;
     			if(p.hasTask(index - 1)) {
     				Task t = p.getTask(index - 1);
     				t.setCompleted(false);
@@ -420,30 +409,27 @@ public class App extends ListenerAdapter
     			}
     		}
     		workflowDB.save();
-    	}else if(command.equalsIgnoreCase("setCompletion")) {
-    		Task t = null;
-    		try{
-    			 t = p.getTask(mh.name);
-    		}catch(NullPointerException npe) {
-    			
-    		}
-    		if(t == null) {
-    			if(input.contains("\"")) {
+    	}else if(command.equalsIgnoreCase("setCompletion") || command.equalsIgnoreCase("completion")) {
+    		if(mh.index == -1) {
+        		p.setCompletion(mh.percentage);
+        		objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
+    		}else {
+    			int index = mh.index;
+    			System.out.println(mh.percentage);
+    			if(p.hasTask(index - 1)) {
+    				Task t = p.getTask(index - 1);
+    				t.setCompletion(mh.percentage);
+        			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
+    			}else {
     				EmbedBuilder eb = new EmbedBuilder();
     				eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Task does not exist. Check for spelling errors!");
+    				eb.setTitle("Error: Task does not exist. Index out of bounds. Select an integer from 1-" + (p.getTasks().size()));
     				objMsgCh.sendMessage(eb.build()).queue();
-    			}else {
-        			p.setCompletion(Integer.parseInt(mh.description));
-        			objMsgCh.sendMessage(p.getEmbed(p.getDEFAULT())).queue();
     			}
-    		}else {
-    			t.setCompletion(Integer.parseInt(mh.description));
-    			objMsgCh.sendMessage(t.getEmbed(p.getDEFAULT())).queue();
     		}
     		workflowDB.save();
-    	}else if(command.equalsIgnoreCase("removeTask")) {
-    		if(mh.description.equalsIgnoreCase("")) {
+    	}else if(command.equalsIgnoreCase("removeTask") || command.equalsIgnoreCase("remove")) {
+    		if(mh.index == -1) {
     			if(p.hasTask(mh.name)) {
     				p.removeTask(mh.name);
     				EmbedBuilder eb = new EmbedBuilder();
@@ -457,16 +443,7 @@ public class App extends ListenerAdapter
     				objMsgCh.sendMessage(eb.build()).queue();
     			}
     		}else {
-    			int index = 0;
-    			try {
-    				index = Integer.parseInt(mh.description);
-    			}catch(Exception e) {
-    				EmbedBuilder eb = new EmbedBuilder();
-    	    		eb.setColor(Ref.RED);
-    				eb.setTitle("Error: Improperly formatted index. Must be a whole number smaller than or equal to " + (p.getTasks().size()));
-    				objMsgCh.sendMessage(eb.build()).queue();
-    				return;
-    			}
+    			int index = mh.index;
     			if(p.hasTask(index - 1)) {
     				p.removeTask(index - 1);
     				EmbedBuilder eb = new EmbedBuilder();
@@ -480,9 +457,6 @@ public class App extends ListenerAdapter
     				objMsgCh.sendMessage(eb.build()).queue();
     			}
     		}
-    		
-			
-			
     		workflowDB.save();
     	}else if(command.equalsIgnoreCase("setLogo")) {
     		p.setLogoURL(mh.name);
@@ -496,7 +470,7 @@ public class App extends ListenerAdapter
     			e.printStackTrace();
     			EmbedBuilder eb = new EmbedBuilder();
 				eb.setColor(Ref.RED);
-				eb.setTitle("Error: Improperly formatted Color code. Use the format `" + Ref.prefix + "colour \"COLOUR NAME\" #RRRGGBB`");
+				eb.setTitle("Error: Improperly formatted Color code. Use the format `" + Ref.prefix + "colour \"COLOUR NAME\" #RRGGBB`");
 				objMsgCh.sendMessage(eb.build()).queue();
 				return;
     		}

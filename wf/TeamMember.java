@@ -21,6 +21,10 @@ public class TeamMember {
 	public void setProjectId(Long projectId) {
 		this.projectId = projectId;
 	}
+	
+	public static TeamMember toTeamMember(User u, Long projectId) {
+		return new TeamMember(u.getIdLong(), projectId);
+	}
 
 	
 	

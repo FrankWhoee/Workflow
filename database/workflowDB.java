@@ -24,6 +24,7 @@ public class workflowDB {
 			database = new JsonParser().parse(raw).getAsJsonObject();
 			for(String key : database.keySet()) {
 				Project p = Project.fromJson(database.get(key).toString());
+				
 				try{
 					p.activate();
 				}catch(Exception e) {
@@ -69,10 +70,8 @@ public class workflowDB {
 		for(int i = 0; i < projects.size(); i++) {
 			Project p = projects.get(i);
 			Long id = p.getProjectId();
-			System.out.println(id + " compared to " + projectId + ": " + (id.equals(projectId)));
 			if(id.equals(projectId)) {
 				projects.remove(i);
-				System.out.println(projects.contains(p));
 				return;
 			}
 		}

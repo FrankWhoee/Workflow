@@ -16,7 +16,7 @@ import net.dv8tion.jda.core.entities.User;
 
 
 
-public class Task extends TimerTask {
+public class Task{
 	private List<TeamMember> assignedMembers;
 	private String name;
 	private String description;
@@ -24,6 +24,8 @@ public class Task extends TimerTask {
 	private Long projectId;
 	private int completion;
 	private boolean isCompleted;
+	private Long taskId;
+	private TaskTimer taskTimer;
 	
 	public Task(List<TeamMember> assignedMembers, String name, String description, Date deadline, Long projectId,
 			int completion, boolean isCompleted) {
@@ -35,8 +37,11 @@ public class Task extends TimerTask {
 		this.projectId = projectId;
 		this.completion = completion;
 		this.isCompleted = isCompleted;
+		
+		Project p = workflowDB.getProject(projectId);
+		taskId = p.generateTaskId();
 	}
-
+	
 
 	public int getCompletion() {
 		return completion;
@@ -53,6 +58,10 @@ public class Task extends TimerTask {
 	public void setCompleted(boolean isCompleted) {
 		this.isCompleted = isCompleted;
 	}
+	
+	public Long getTaskId() {
+		return this.taskId;
+	}
 
 	public Task(List<TeamMember> assignedMembers, String name, String description, Date deadline, Long projectId) {
 		super();
@@ -61,6 +70,7 @@ public class Task extends TimerTask {
 		this.description = description;
 		this.deadline = deadline;
 		this.projectId = projectId;
+		this.taskId = workflowDB.getProject(projectId).generateTaskId();
 	}
 	
 	public Task(String name) {
@@ -86,32 +96,17 @@ public class Task extends TimerTask {
 		}
 	}
 	
-	@Override
-	public void run() {
-		//Verify that deadline has not changed
-		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
-			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-			Color warning = workflowDB.getProject(projectId).getWARNING();
-			
-			objMsgCh.sendMessage(getEmbed(warning)).queue();
-			
-			EmbedBuilder eb = new EmbedBuilder();
-			eb.setTitle("Deadline reached for task '" + name + "'");
-			eb.setColor(warning);
-			broadcast(eb.build());
-			
-			broadcast(getEmbed(warning));
-			
-		}
-	}
+
 	
 	public MessageEmbed getEmbed(Color c) {
 		EmbedBuilder eb = new EmbedBuilder();
 		eb.setTitle(name);
 		eb.setDescription(description);
 		String collaborators = "";
-		for(TeamMember tm : assignedMembers) {
-			collaborators += tm.getUser().getAsMention() + "\n";
+		if(assignedMembers != null) {
+			for(TeamMember tm : assignedMembers) {
+				collaborators += tm.getUser().getAsMention() + "\n";
+			}
 		}
 				
 		eb.addField("Members Assigned to this task:", collaborators,false);
@@ -119,14 +114,21 @@ public class Task extends TimerTask {
 		eb.addField(completion,"Completion: " + this.completion + "%",false);
 		String logoURL = workflowDB.getProject(projectId).getLogoURL();
 		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), logoURL);
-		eb.setImage(logoURL);
+		eb.setThumbnail(logoURL);
 		eb.setColor(c);
 		return eb.build();
 	}
 	
 	public void setTimer() {
-		Timer t = new Timer();
-		t.schedule(this, (deadline.getTime() - new Date().getTime()));
+		try {
+			taskTimer.cancel();
+		}catch(Exception e) {}
+		taskTimer = new TaskTimer(projectId, taskId);
+		taskTimer.activate();
+	}
+	
+	public TaskTimer getTimer() {
+		return taskTimer;
 	}
 
 	public List<TeamMember> getAssignedMembers() {

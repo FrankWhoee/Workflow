@@ -1,6 +1,7 @@
 package bot.workflow.util;
 
 import java.awt.Color;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,19 +27,52 @@ public class MessageHarvester {
 	public String name;
 	public String description;
 	public Date deadline;
+	public String command;
+	public int index;
+	public int subindex;
+	public int percentage;
 	public Long projectId;
 	public List<TeamMember> team;
 	public MessageChannel objMsgCh;
 	
-	public MessageHarvester(String name, String description, Date deadline, Long projectId, List<TeamMember> team,
-			MessageChannel objMsgCh) {
+	/* SYMBOLS LEGEND
+	 *  "" = name 
+	 *  '' = description
+	 *  <> = deadline
+	 *  ?? = command
+	 *  () = index
+	 *  [] = subindex
+	 *  {} = percentage
+	 *  */
+	
+	
+	
+	public MessageHarvester(String name, String description, Date deadline, String command, int index, int subindex, int percentage,
+			Long projectId, List<TeamMember> team, MessageChannel objMsgCh) {
 		super();
 		this.name = name;
 		this.description = description;
 		this.deadline = deadline;
+		this.command = command;
+		this.index = index;
+		this.percentage = percentage;
+		this.subindex = subindex;
 		this.projectId = projectId;
 		this.team = team;
 		this.objMsgCh = objMsgCh;
+	}
+	
+	public ArrayList<Object> getAttributes(){
+		ArrayList<Object> variables = new ArrayList<Object>();
+	    Field[] fields = this.getClass().getFields();
+	    for(Field field : fields) { 
+		    try {
+				variables.add(field.get(this));
+			}catch (Exception e) {
+				
+			}
+		}
+	    return variables;
 	}
 	
 	public static MessageHarvester harvest(Message objMsg) {
@@ -49,13 +83,13 @@ public class MessageHarvester {
 		try {
 			name = between(objMsg, "\"","\"");
 		} catch (Exception e1) {
-			name = objMsgCh.getName();
+			name = null;
 		}
 		
-		//Takes whatever is in between ()
-		String description = "";
+		//Takes whatever is in between ''
+		String description = null;
 		try {
-			description = between(objMsg, "(",")");
+			description = between(objMsg, "'","'");
 		} catch (Exception e1) {
 			
 		}
@@ -70,201 +104,80 @@ public class MessageHarvester {
 		try {
 			 deadline = Ref.dateFormat.parse(deadlineString);
 		} catch (ParseException e) {
-			objMsgCh.sendMessage("Improperly formatted deadline.").queue();
-			return null;
+			deadline = null;
 		}
+		
 		Long projectId = objMsgCh.getIdLong();
 		if(objMsg.getMentionedChannels().size() > 0) {
 			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
 		}
 		
-		
-		if(workflowDB.hasProject(projectId)) {
-			objMsgCh.sendMessage("This channel already has a project.").queue();
-			return null;
-		}
-		
-		List<Role> taggedRoles = objMsg.getMentionedRoles();
-		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
-			Role r = taggedRoles.get(i);
-			System.out.println(r.getName());
-			//if(r.getName().equals("everyone")) {
-//				taggedRoles.remove(i);
-//			}
-		}
-		List<User> taggedMembers = objMsg.getMentionedUsers();
-		
-		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
-		List<TeamMember> team = new ArrayList<TeamMember>();
-		if(!taggedMembers.contains(objMsg.getAuthor())) {
-			TeamMember tm = new TeamMember(objMsg.getAuthor().getIdLong(),projectId);
-			team.add(tm);
-		}
-		
-		for(User m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getIdLong(),projectId);
-			team.add(tm);
-		}
-		if(taggedRoles.size() > 0) {
-			for(Member m : roleMembers) {
-				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				team.add(tm);
-			}
-		}
-		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
-		return mh;
-	}
-	
-	public static MessageHarvester harvest(Message objMsg,boolean suppressWarnings) {
-		
-		MessageChannel objMsgCh = objMsg.getChannel();
-		//Takes whatever is in between ""
-		String name;
+		//Takes whatever is in between ''
+		String command = "";
 		try {
-			name = between(objMsg, "\"","\"");
+			command = between(objMsg, "?","?");
 		} catch (Exception e1) {
-			name = "";
-		}
-		
-		//Takes whatever is in between ()
-		String description = "";
-		try {
-			description = between(objMsg, "(",")");
-		} catch (Exception e1) {
-			
-		}
-		
-		//Takes whatever is in between <>
-		String deadlineString = "";
-		try {
-			deadlineString = between(objMsg,"<",">");
-		} catch (Exception e1) {
-		}
-		
-		Date deadline = new Date(32503680000000L);
-		try {
-			 deadline = Ref.dateFormat.parse(deadlineString);
-		} catch (ParseException e) {
-			deadline = new Date(32503680000000L);
-			if(!suppressWarnings) {
-				EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: Improperly formatted deadline!");
-    			objMsgCh.sendMessage(eb.build()).queue();
-				return null;
-			}
-		}
-		Long projectId = objMsgCh.getIdLong();
-		if(objMsg.getMentionedChannels().size() > 0) {
-			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-		}
-		
-		
-		if(workflowDB.hasProject(projectId)) {
-			if(!suppressWarnings) {
-				EmbedBuilder eb = new EmbedBuilder();
-    			eb.setColor(Ref.RED);
-    			eb.setTitle("Error: #" + App.jda.getTextChannelById(projectId).getName() + "is already associated with a project.");
-    			objMsgCh.sendMessage(eb.build()).queue();
-				return null;
-			}
-		}
-		
-		
-		List<Role> taggedRoles = objMsg.getMentionedRoles();
-		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
-			Role r = taggedRoles.get(i);
-			System.out.println(r.getName());
-			//if(r.getName().equals("everyone")) {
-//				taggedRoles.remove(i);
-//			}
-		}
-		List<User> taggedMembers = objMsg.getMentionedUsers();
-		
-		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
-		List<TeamMember> team = new ArrayList<TeamMember>();
-		if(!taggedMembers.contains(objMsg.getAuthor())) {
-			TeamMember tm = new TeamMember(objMsg.getAuthor().getIdLong(),projectId);
-			team.add(tm);
-		}
-		
-		for(User m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getIdLong(),projectId);
-			team.add(tm);
-		}
-		if(taggedRoles.size() > 0) {
-			for(Member m : roleMembers) {
-				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				team.add(tm);
-			}
-		}
-		
-		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
-		return mh;
-	}
-	
-	public static MessageHarvester harvestProjectEdits(Message objMsg,Project p) {
-		
-		MessageChannel objMsgCh = objMsg.getChannel();
-		//Takes whatever is in between ""
-		String name;
-		try {
-			name = between(objMsg, "\"","\"");
-		} catch (Exception e1) {
-			name = p.getName();
 			
 		}
 		
 		//Takes whatever is in between ()
-		String description = p.getDescription();
+		int index = -1;
 		try {
-			description = between(objMsg, "(",")");
+			index = Integer.parseInt(between(objMsg, "(",")"));
 		} catch (Exception e1) {
 			
 		}
 		
-		//Takes whatever is in between <>
-		String deadlineString = Ref.dateFormat.format(p.getDeadline());
+		//Takes whatever is in between []
+		int subindex = -1;
 		try {
-			deadlineString = between(objMsg,"<",">");
+			subindex = Integer.parseInt(between(objMsg, "[","]"));
+		} catch (Exception e1) {
+			
+		}
+		
+		//Takes whatever is in between {}
+		int percentage = -1;
+		try {
+			percentage = Integer.parseInt(between(objMsg, "{","}"));
 		} catch (Exception e1) {
 		}
-		Date deadline = p.getDeadline();
-		try {
-			 deadline = Ref.dateFormat.parse(deadlineString);
-		} catch (ParseException e) {
-			deadline = p.getDeadline();
-		}
-		Long projectId = p.getProjectId();
-		if(objMsg.getMentionedChannels().size() > 0) {
-			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-		}
-		
+
 		
 		List<Role> taggedRoles = objMsg.getMentionedRoles();
-		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
-			Role r = taggedRoles.get(i);
-			System.out.println(r.getName());
-			//if(r.getName().equals("everyone")) {
-//				taggedRoles.remove(i);
-//			}
+		List<User> taggedMembers = objMsg.getMentionedUsers();
+		
+		//Add members that are in tagged roles
+		List<Member> roleMembers = new ArrayList<Member>(); 
+		for(Role r : taggedRoles) {
+			for(Member m : objMsg.getGuild().getMembersWithRoles(r)) {
+				roleMembers.add(m);
+			}
 		}
-		List<Member> taggedMembers = objMsg.getMentionedMembers();
-		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
+		
 		List<TeamMember> team = new ArrayList<TeamMember>();
-		for(Member m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			System.err.println(m.getNickname());
+
+		
+		//Add tagged members
+		for(User m : taggedMembers) {
+			TeamMember tm = new TeamMember(m.getIdLong(),projectId);
 			team.add(tm);
 		}
+		
+		//If there are tagged roles, add members that belong to those roles
 		if(taggedRoles.size() > 0) {
 			for(Member m : roleMembers) {
 				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				System.out.println(m.getEffectiveName());
 				team.add(tm);
 			}
 		}
-		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
+		
+		if(team.size() == 0) {
+			team = null;
+		}
+		//public MessageHarvester(String name, String description, Date deadline, String command, int index, int subindex, int percentage,
+		//Long projectId, List<TeamMember> team, MessageChannel objMsgCh) {
+		MessageHarvester mh = new MessageHarvester(name, description, deadline,command,index,subindex,percentage, projectId, team, objMsgCh);
 		return mh;
 	}
 	
@@ -274,72 +187,7 @@ public class MessageHarvester {
 		Color c = Color.decode("0x" + colourCode);
 		return c;
 	}
-	
-	public static MessageHarvester harvestTaskEdits(Message objMsg,Task t) {
-		
-		MessageChannel objMsgCh = objMsg.getChannel();
-		//Takes whatever is in between ""
-		String name;
-		try {
-			name = between(objMsg, "\"","\"");
-		} catch (Exception e1) {
-			name = t.getName();
-			
-		}
-		
-		//Takes whatever is in between ()
-		String description = t.getDescription();
-		try {
-			description = between(objMsg, "(",")");
-		} catch (Exception e1) {
-			
-		}
-		
-		//Takes whatever is in between <>
-		String deadlineString = Ref.dateFormat.format(t.getDeadline());
-		try {
-			deadlineString = between(objMsg,"<",">");
-		} catch (Exception e1) {
-		}
-		Date deadline = t.getDeadline();
-		try {
-			 deadline = Ref.dateFormat.parse(deadlineString);
-		} catch (ParseException e) {
-			deadline = t.getDeadline();
-		}
-		Long projectId = t.getProjectId();
-		if(objMsg.getMentionedChannels().size() > 0) {
-			projectId = objMsg.getMentionedChannels().get(0).getIdLong();
-		}
-		
-		
-		List<Role> taggedRoles = objMsg.getMentionedRoles();
-		for(int i = taggedRoles.size() - 1; i >= 0; i--) {
-			Role r = taggedRoles.get(i);
-			System.out.println(r.getName());
-			//if(r.getName().equals("everyone")) {
-//				taggedRoles.remove(i);
-//			}
-		}
-		List<Member> taggedMembers = objMsg.getMentionedMembers();
-		List<Member> roleMembers = objMsg.getGuild().getMembersWithRoles(taggedRoles); 
-		List<TeamMember> team = new ArrayList<TeamMember>();
-		for(Member m : taggedMembers) {
-			TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-			System.err.println(m.getNickname());
-			team.add(tm);
-		}
-		if(taggedRoles.size() > 0) {
-			for(Member m : roleMembers) {
-				TeamMember tm = new TeamMember(m.getUser().getIdLong(),projectId);
-				System.out.println(m.getEffectiveName());
-				team.add(tm);
-			}
-		}
-		MessageHarvester mh = new MessageHarvester(name, description, deadline, projectId, team, objMsgCh);
-		return mh;
-	}
-	
+
     public static String between(Message m, String s1, String s2) throws Exception{
     	String output; 
     	String input = m.getContentRaw();

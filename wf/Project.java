@@ -21,7 +21,7 @@ import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.MessageEmbed.Field;
 import net.dv8tion.jda.core.entities.User;
 
-public class Project extends TimerTask{
+public class Project {
 	
 	private List<TeamMember> team = new ArrayList<TeamMember>();
 	private List<Task> tasks = new ArrayList<Task>();
@@ -31,6 +31,7 @@ public class Project extends TimerTask{
 	private Long projectId;
 	private int completion;
 	private boolean isCompleted;
+	private ProjectTimer projectTimer;
 	
 	//Cosmetic
 	private String logoURL = Ref.logoURL;
@@ -48,7 +49,7 @@ public class Project extends TimerTask{
 		Type listTaskType = new TypeToken<List<Task>>() {}.getType();
 		List<Task> tasks = gson.fromJson(project.get("tasks"), listTaskType);
 		String name = project.get("name").getAsString();
-		String description = project.get("description").getAsString();
+		//String description = project.has("description") ? project.get("description").getAsString() : "";
 		
 		Type dateType = new TypeToken<Date>() {}.getType();
 		Date deadline = gson.fromJson(project.get("deadline"), dateType);
@@ -64,9 +65,8 @@ public class Project extends TimerTask{
 		Color BEGINNING = gson.fromJson(project.get("BEGINNING"), colorType);
 		Color DEFAULT = gson.fromJson(project.get("DEFAULT"), colorType);
 		
-	
 		
-		Project p = new Project(team, tasks, name, description, deadline, projectId, completion, isCompleted, logoURL, WARNING, BEGINNING, DEFAULT);
+		Project p = new Project(team, tasks, name, "", deadline, projectId, completion, isCompleted, logoURL, WARNING, BEGINNING, DEFAULT);
 	
 		return p;
 	}
@@ -176,13 +176,16 @@ public class Project extends TimerTask{
 			}catch(Exception e) {
 				
 			}
-			
 		}
 	}
-
+	
 	public void setTimer() {
-		Timer t = new Timer();
-		t.schedule(this, (deadline.getTime() - new Date().getTime()));
+		try {
+			projectTimer.cancel();
+		}catch(Exception e) {}
+		
+		projectTimer = new ProjectTimer(projectId);
+		projectTimer.activate();
 	}
 	
 	public void addMember(TeamMember tm) {
@@ -287,24 +290,58 @@ public class Project extends TimerTask{
 	public void removeTask(String name) {
 		for(int i = tasks.size() - 1; i >= 0; i--) {
 			if(tasks.get(i).getName().equals(name)) {
+				tasks.get(i).getTimer().cancel();
 				tasks.remove(i);
+				
 			}
 		}
 		
 	}
-	
 	public void removeTask(int index) {
+		System.out.println(tasks.get(index).getTimer());
+		tasks.get(index).getTimer().cancel();
 		tasks.remove(index);
-		
 	}
 	
 	public void removeTask(Task t) {
 		for(int i = tasks.size() - 1; i >= 0; i--) {
 			if(tasks.get(i).getName().equals(t.getName())) {
+				tasks.get(i).getTimer().cancel();
 				tasks.remove(i);
 			}
 		}
 		
+	}
+	
+	public Long generateTaskId() {
+		//Create a random id.
+		Long newId = (long) (Math.random() * Long.MAX_VALUE);
+		
+		//Verify that this id is unique. If not, generate another one.
+		while(taskIdExists(newId)) {
+			newId = (long) (Math.random() * Long.MAX_VALUE);
+		}
+		
+		//Id is now confirmed to be unique.
+		return newId;
+	}
+	
+	public boolean taskIdExists(Long id) {
+		for(Task t : this.tasks) {
+			if(t.getTaskId() == id) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public Task getTaskById(Long id) {
+		for(Task t : this.tasks) {
+			if(t.getTaskId() == id) {
+				return t;
+			}
+		}
+		return null;
 	}
 
 	public void setName(String name) {
@@ -339,10 +376,12 @@ public class Project extends TimerTask{
 		for(TeamMember tm : team) {
 			collaborators += tm.getUser().getAsMention() + "\n";
 		}
-		eb.addField("Project Channel:", App.jda.getTextChannelById(projectId).getAsMention(), false);
-		eb.addField("Team:", collaborators,false);
+		eb.addField("Team:", collaborators,true);
 		String completion = isCompleted ? "Project is complete" : "Project is in progress";
-		eb.addField(completion,"Completion: " + this.completion + "%",false);
+		eb.addField(completion,"Completion: " + this.completion + "%" + "\n" + 
+		getCompletedTasks() + "/" + tasks.size() + " tasks completed.",true);
+		
+		eb.addField("Project Channel:", App.jda.getTextChannelById(projectId).getAsMention(), true);
 		eb.setFooter("Task Deadline: " + Ref.dateFormat.format(deadline), getLogoURL());
 		eb.setColor(c);
 		return eb.build();
@@ -391,18 +430,30 @@ public class Project extends TimerTask{
 		return eb.build();
 	}
 	
-	public MessageEmbed getTasksEmbed() {
-		String tasks = "";
-		for(Task t : this.tasks) {
-			String names = "";
-			for(TeamMember tm : t.getAssignedMembers()) {
-				if(t.getAssignedMembers().indexOf(tm) != t.getAssignedMembers().size() - 1) {
-					names += tm.getUser().getName() + ", ";
-				}else {
-					names += tm.getUser().getName();
-				}
+	public int getCompletedTasks() {
+		int completedTasks = 0;
+		for(Task t : tasks) {
+			if(t.isCompleted()) {
+				completedTasks++;
 			}
+		}
+		return completedTasks;
+	}
+	
+	public MessageEmbed getTasksEmbed() {
+		int completedTasks = getCompletedTasks();
+		String tasks = "`" + completedTasks + "/" + this.tasks.size() + " tasks completed.`\n\n";
+		for(Task t : this.tasks) {
+//			String names = "";
+//			for(TeamMember tm : t.getAssignedMembers()) {
+//				if(t.getAssignedMembers().indexOf(tm) != t.getAssignedMembers().size() - 1) {
+//					names += tm.getUser().getName() + ", ";
+//				}else {
+//					names += tm.getUser().getName();
+//				}
+//			}
 			//+ "' assigned to " + names
+			System.out.println(t.getDeadline());
 			String status = t.isCompleted() ? "COMPLETED" : "WIP";
 			tasks += "`" + (this.tasks.indexOf(t) + 1)  + ". "+ t.getName()  + "` "
 					+ "\n`Deadline: " + Ref.dateFormatTrimmed.format(t.getDeadline()) + " " + status + " [" + t.getCompletion() + "%]`\n\n";
@@ -478,22 +529,6 @@ public class Project extends TimerTask{
 			u.openPrivateChannel().queue(channel -> {
 				channel.sendMessage(s).queue();
 			});
-		}
-	}
-
-	@Override
-	public void run() {
-		//Verify that deadline has not changed
-		if(deadline.after(new Date()) || Math.abs((deadline.getTime() - new Date().getTime())) < 30000) {
-			MessageChannel objMsgCh = App.jda.getTextChannelById(projectId);
-			objMsgCh.sendMessage(getEmbed(WARNING)).queue();
-			
-			EmbedBuilder eb = new EmbedBuilder();
-			eb.setTitle("Deadline reached for project '" + name + "'");
-			eb.setColor(WARNING);
-			broadcast(eb.build());
-			
-			broadcast(getEmbed(WARNING));
 		}
 	}
 	
